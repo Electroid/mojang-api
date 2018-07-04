@@ -1,0 +1,26 @@
+{
+  "name": "mojang",
+  "version": "1.0.0",
+  "description": "Fast caching layer for the Mojang API",
+  "author": "Ashcon Partovi",
+  "email": "ashcon@partovi.net",
+  "license": "MIT",
+  "main": "src/index.coffee",
+  "scripts": {
+    "build": "webpack",
+    "build:watch": "webpack --watch",
+    "preview": "workers-preview < dist/bundle.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "coffee-script": "^1.12.7",
+    "coffeescript": "^2.3.1",
+    "coffee-loader": "^0.9.0",
+    "compression-webpack-plugin": "^1.1.11",
+    "webpack": "^4.14.0",
+    "webpack-bundle-analyzer": "^2.13.1",
+    "webpack-cli": "^3.0.8",
+    "webpack-command": "^0.4.0",
+    "workers-preview": "^1.0.4"
+  }
+}
