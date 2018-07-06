@@ -8,7 +8,6 @@ util = require("./util")
 # @param {object} extra - Extra parameters passed to fetch method.
 # @returns {[err, json]} - An error or JSON from a 200 status code.
 request = (url, method, {ttl, extra} = {}) ->
-  console.log(url)
   ttl ?= 60
   extra ?= {}
   response = await fetch(url, {
