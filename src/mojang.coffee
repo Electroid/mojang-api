@@ -76,7 +76,12 @@ uuidToUsernameHistory = (uuid) ->
 #   "name": "ElectroidFilms",
 #   "properties": [
 #     {"name": "textures", "value": "...base64"}
-#   ]
+#   ],
+#   // Not in the upstream API, but added for convience.
+#   "textures": {
+#     "SKIN": {...},
+#     "CAPE": {...},
+#   }
 # }
 #
 # @param {string} uuid - The UUID to get the session profile of.
@@ -86,7 +91,18 @@ uuidToProfile = (uuid) ->
   unless err
     # Decode the base64 string into an embeded json value,
     # but preserve the previous value for backwards-compatibility.
-    profile.textures = JSON.parse(atob(profile.properties[0].value)).textures
+    if (textures = JSON.parse(atob(profile.properties[0].value)).textures).isEmpty()
+      # If no textures are provided, default to either Steve or
+      # Alex based on the oddity of the UUID.
+      if uuidIsSlim(uuid)
+        textures =
+          SKIN: "http://textures.minecraft.net/texture/83cee5ca6afcdb171285aa00e8049c297b2dbeba0efb8ff970a5677a1b644032"
+          metadata:
+            model: "slim"
+      else
+        textures =
+          SKIN: "http://textures.minecraft.net/texture/dc1c77ce8e54925ab58125446ec53b0cdd3d0ca3db273eb908d5482787ef4016"
+    profile.textures = textures
   [err, profile]
 
 # Determine if a UUID without custom textures inherits a slim skin model.

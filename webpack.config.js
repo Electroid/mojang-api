@@ -1,6 +1,4 @@
 const path = require('path')
-const webpack = require('webpack')
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 
 module.exports = {
   entry: {
@@ -26,15 +24,5 @@ module.exports = {
         loader: 'coffee-loader',
       },
     ],
-  },
-  node: {
-    fs: 'empty'
-  },
-  //optimization: {
-  //  minimize: true
-  //},
-  plugins: [
-    //new BundleAnalyzerPlugin(),
-    //new webpack.IgnorePlugin(/ml-.*|pako/)
-  ]
+  }
 }

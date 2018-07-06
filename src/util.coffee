@@ -35,8 +35,8 @@ String::asUuid = ({dashed} = {}) ->
        uuid.substring(16, 20)
        uuid.substring(20, 32)
       ].join('-')
-  else
-    false
+    else
+      uuid
 uuidPattern = /^([0-9a-f]{8})(?:-|)([0-9a-f]{4})(?:-|)(4[0-9a-f]{3})(?:-|)([0-9a-f]{4})(?:-|)([0-9a-f]{12})$/i
 
 # Ensure that the string is a valid Minecraft username.
@@ -60,3 +60,9 @@ String::asJson = ->
 # @returns {date} - The number as a floored Date.
 Number::asDate = ->
   new Date(Math.floor(this))
+
+# Determine if the object is empty.
+#
+# @returns {boolean} - Whether the object is empty.
+Object::isEmpty = ->
+  Object.keys(this).length == 0

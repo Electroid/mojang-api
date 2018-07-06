@@ -8,6 +8,7 @@ util = require("./util")
 # @param {object} extra - Extra parameters passed to fetch method.
 # @returns {[err, json]} - An error or JSON from a 200 status code.
 request = (url, method, {ttl, extra} = {}) ->
+  console.log(url)
   ttl ?= 60
   extra ?= {}
   response = await fetch(url, {
@@ -42,7 +43,7 @@ post = (url, json, options = {}) ->
 # @returns {response} - Encapsulated response object, not yet sent.
 respond = (json, code) ->
   new Response(
-    JSON.stringify(json, null, 2),
+    JSON.stringify(json, undefined, 2),
     {status: code, headers: {"Content-Type": "application/json"}}
   )
 
@@ -72,7 +73,7 @@ tooManyRequests = (msg = null) ->
 # @param {integer} code - HTTP status code.
 # @returns {response|null} - An error response or null.
 coerce = (code) ->
-  switch
+  switch code
     when 200 then null
     when 204 then notFound()
     when 400 then invalidRequest()

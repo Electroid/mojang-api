@@ -1,5 +1,5 @@
 {
-  "name": "mojang",
+  "name": "mojang-api",
   "version": "1.0.0",
   "description": "Fast caching layer for the Mojang API",
   "author": "Ashcon Partovi",
