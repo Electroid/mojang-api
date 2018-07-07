@@ -1,4 +1,4 @@
-util = require("./util")
+# import "./util"
 
 # Send a HTTP request.
 #
@@ -23,13 +23,13 @@ request = (url, method, {ttl, extra} = {}) ->
 # Send a GET HTTP request.
 #
 # @see #request(url, method, ttl, extra)
-get = (url, options = {}) ->
+export get = (url, options = {}) ->
   request(url, "GET", options)
 
 # Send a POST HTTP request.
 #
 # @see #request(url, method, ttl, extra)
-post = (url, json, options = {}) ->
+export post = (url, json, options = {}) ->
   request(url, "POST", {extra: {body: JSON.stringify(json)}}.merge(options))
 
 # Respond to a HTTP request from a client.
@@ -49,41 +49,32 @@ respond = (json, code) ->
 # Respond to a HTTP request with a successful JSON response.
 #
 # @see #respond(json, code)
-ok = (json) ->
+export ok = (json) ->
   respond(json, 200)
 
 # Respond to a HTTP request with an error.
 #
 # @see #respond(json, code)
-error = (code = 500, message = "Internal Error", reason = null) ->
+export error = (code = 500, message = "Internal Error", reason = null) ->
   respond({status: code, message: message + (if reason then " - #{reason}" else "")}, code)
 
-notFound = (msg = null) ->
+export notFound = (msg = null) ->
   error(404, "Not Found", msg)
 
-invalidRequest = (msg = null) ->
+export invalidRequest = (msg = null) ->
   error(400, "Invalid Request", msg)
 
-tooManyRequests = (msg = null) ->
+export tooManyRequests = (msg = null) ->
   error(429, "Too Many Requests", msg)
 
 # Convert an upstream HTTP status code to a new error response.
 #
 # @param {integer} code - HTTP status code.
 # @returns {response|null} - An error response or null.
-coerce = (code) ->
+export coerce = (code) ->
   switch code
     when 200 then null
     when 204 then notFound()
     when 400 then invalidRequest()
     when 429 then tooManyRequests()
     else error()
-
-module.exports = {
-  get
-  post
-  ok
-  notFound
-  invalidRequest
-  tooManyRequests
-}
