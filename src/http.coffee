@@ -1,5 +1,3 @@
-# import "./util"
-
 # Send a HTTP request.
 #
 # @param {string} url - URL to send the request.
