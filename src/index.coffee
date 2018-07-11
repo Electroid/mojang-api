@@ -1,15 +1,17 @@
 import "./util"
 import { notFound } from "./http"
-import { uuid, user } from "./api"
+import { uuid, user, avatar } from "./api"
 
 addEventListener("fetch", (event) ->
   event.respondWith(route(event.request)))
 
 route = (request) ->
-  if match = /\/minecraft\/user\/(.*)/.exec(request.url)
-    [err, id] = await uuid(match[1])
+  [base, method, id, extra] = request.url.split("/")[3..6]
+  if base == "minecraft" && id?
+    [err, id] = await uuid(id)
     unless err
-      [err, response] = await user(id)
-      unless err
-        return response
-  return err || notFound('Unknown Route')
+      if method == "user"
+        [err, res] = await user(id)
+      else if method == "avatar"
+        res = await avatar(id, extra)
+  err || res || notFound("Unknown Route")

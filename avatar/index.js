@@ -18,8 +18,8 @@ const textureDefault = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76L
  */
 exports.avatar = (req, res) => {
   var texture = req.body.texture
-  var size = req.body.size
-  if(typeof texture === 'string' && typeof size === 'number') {
+  var size = parseInt(req.body.size)
+  if(typeof texture === 'string' && !isNaN(size)) {
     // Limit range of image size to prevent bad requests
     size = Math.max(Math.min(Math.ceil(size), 512), 8)
     request({uri: textureUrl + texture, encoding: null})

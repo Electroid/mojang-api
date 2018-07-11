@@ -3,9 +3,10 @@
 # @param {string} url - URL to send the request.
 # @param {string} method - HTTP method to use (GET, POST, etc).
 # @param {integer} ttl - Time in seconds for Cloudflare to cache requests.
+# @param {boolean} raw - Whether to return just the raw response.
 # @param {object} extra - Extra parameters passed to fetch method.
 # @returns {[err, json]} - An error or JSON from a 200 status code.
-request = (url, method, {ttl, extra} = {}) ->
+request = (url, method, {ttl, raw, extra} = {}) ->
   ttl ?= 60
   extra ?= {}
   response = await fetch(url, {
@@ -13,10 +14,12 @@ request = (url, method, {ttl, extra} = {}) ->
     cf: {cacheTtl: ttl} if ttl > 0,
     headers: {"Content-Type": "application/json"}
   }.merge(extra))
-  if err = coerce(response.status)
-    [err, null]
+  if raw
+    response
   else
-    [null, try JSON.parse(await response.text()) catch err then null]
+    err = coerce(response.status)
+    data = try JSON.parse(await response.text()) catch err then null
+    [err, data]
 
 # Send a GET HTTP request.
 #
@@ -47,7 +50,7 @@ respond = (json, code) ->
 # Respond to a HTTP request with a successful JSON response.
 #
 # @see #respond(json, code)
-export ok = (json) ->
+export json = (json) ->
   respond(json, 200)
 
 # Respond to a HTTP request with an error.
