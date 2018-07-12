@@ -44,7 +44,7 @@ export post = (url, json, options = {}) ->
 respond = (json, code) ->
   new Response(
     JSON.stringify(json, undefined, 2),
-    {status: code, headers: {"Content-Type": "application/json"}}
+    {status: code, headers: {"Content-Type": "application/json", "Accept-Encoding": "gzip"}}
   )
 
 # Respond to a HTTP request with a successful JSON response.

@@ -1,6 +1,5 @@
 import { json, invalidRequest } from "./http"
 import { usernameToUuid, uuidToProfile, uuidToUsernameHistory } from "./mojang"
-import { urlToPng } from "./avatar"
 
 # If given a username, find its UUID, otherwise
 # ensure that the input is a valid UUID.
@@ -37,13 +36,4 @@ export user = (id) ->
           cape: profile.textures.CAPE?.url
           slim: profile.textures.SKIN?.metadata?.model == "slim"
         cached_at: new Date()]
-  return [err, null]
-
-# Return the PNG of the user's avatar.
-#
-# @param {string} id - UUID of the user.
-# @param {integer} size - Size of the avatar to render.
-# @returns {response} PNG of the user's avatar.
-export avatar = (id, size) ->
-  [err, profile] = await uuidToProfile(id)
-  urlToPng(profile?.textures?.SKIN?.url.split("/").pop(), size)
+  [err, null]
