@@ -1,4 +1,4 @@
-import { json, invalidRequest } from "./http"
+import { json, invalidRequest, post, redirect } from "./http"
 import { usernameToUuid, uuidToProfile, uuidToUsernameHistory } from "./mojang"
 
 # If given a username, find its UUID, otherwise
@@ -37,3 +37,13 @@ export user = (id) ->
           slim: profile.textures.SKIN?.metadata?.model == "slim"
         cached_at: new Date()]
   [err, null]
+
+# Redirect a request to the avatar service.
+#
+# @param {string} id - Valid UUID.
+# @param {integer} size - Size in pixels to render the avatar.
+export avatar = (id, size) ->
+  if Math.random() < 0.10
+    post("https://us-central1-stratus-197318.cloudfunctions.net/avatar", {id: id, size: size}, {raw: true, ttl: 86400})
+  else
+    redirect("https://avatar.ashcon.app/#{id.asUuid(dashed: true)}/256@2x.png")

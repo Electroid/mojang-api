@@ -13,7 +13,5 @@ route = (request) ->
       if method == "user"
         [err, res] = await user(id)
       else if method == "avatar"
-        # Off-load to legacy services until production ready
-        url = new URL("https://avatar.ashcon.app/#{id.asUuid(dashed: true)}/256@2x.png")
-        res = fetch(url, {cf: {resolveOverride: url.hostname}})
+        res = avatar(id, extra)
   err || res || notFound("Unknown Route")

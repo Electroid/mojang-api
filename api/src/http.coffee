@@ -9,17 +9,25 @@
 request = (url, method, {ttl, raw, extra} = {}) ->
   ttl ?= 60
   extra ?= {}
-  response = await fetch(url, {
+  data = fetch(url, {
     method: method,
     cf: {cacheTtl: ttl} if ttl > 0,
     headers: {"Content-Type": "application/json"}
   }.merge(extra))
   if raw
-    response
+    data
   else
+    response = await data
     err = coerce(response.status)
     data = try JSON.parse(await response.text()) catch err then null
     [err, data]
+
+# Redirect to another URL without loading the response.
+#
+# @param {string} url - URL of the request, must be an internal domain.
+# @returns {promise<response>} - Promise of a request, do NOT await.
+export redirect = (url) ->
+  request(url = new URL(url), "GET", raw: true, extra: {cf: {resolveOverride: url.hostname}})
 
 # Send a GET HTTP request.
 #
