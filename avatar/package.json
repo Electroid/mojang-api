@@ -9,7 +9,7 @@
   "dependencies": {
     "@google-cloud/storage": "^1.7.0",
     "request": "^2.87.0",
-    "request-promise-native": "^1.0.5",
+    "request-promise-cache": "^2.0.0",
     "sharp": "^0.18.4"
   },
   "devDependencies": {

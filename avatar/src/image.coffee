@@ -40,7 +40,7 @@ compose = (buf0, buf1, x = 0, y = 0) ->
 #
 # @param {buffer} buf - Image buffer to resize.
 # @param {integer} size - Width and height in pixels of the new image.
-# @returns {promise<[integer, buffer]>} - Image size and buffer of resized image.
+# @returns {promise<buffer>} - Image buffer of resized image.
 resize = (buf, size) ->
   size = Math.max(0, size)
   image(buf)
@@ -52,29 +52,10 @@ resize = (buf, size) ->
       centerSampling: true)
     .png()
     .toBuffer()
-    .then((buf) -> [size, buf])
 resizeCoef = 2
 
-# Resize an image to multiple new widths and heights.
-#
-# @see #resizeOps for the default resize options.
-# @param {buffer} buf - Image buffer.
-# @returns {[promise<[integer, buffer]>]} - Image buffers of resized images.
-resizeMulti = (buf) ->
-  Promise.all(resizeOps.map((i) ->
-    resize(buf, i)))
-
-# Return the largest default size that will encapsulate the given size.
-#
-# @param {integer} size - Requested size in pixels.
-# @returns {integer} - Size in pixels the server allows.
-resizeNearest = (size = 0) ->
-  size = Math.min(size, resizeOps[-1..])
-  (i for i in resizeOps when i >= size)[0]
-resizeOps = [8, 16, 32, 64, 128, 256, 512]
-
 # Reduce IO operations because of impodency.
-sharp.cache(memory: os.freemem() * 1000)
+sharp.cache(memory: os.freemem() * 1000 / 2)
 
 # Allocate dedicated threads to process images.
 sharp.concurrency(8)

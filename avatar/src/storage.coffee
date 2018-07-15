@@ -1,5 +1,6 @@
-storage = require("@google-cloud/storage")()
-bucket = storage.bucket("#{process.env.bucket}")
+# NB: No longer saving to bucket, using Cloudflare cache.
+# storage = require("@google-cloud/storage")()
+# bucket = storage.bucket("#{process.env.bucket}")
 
 # Get whether a file exists in a bucket.
 #
