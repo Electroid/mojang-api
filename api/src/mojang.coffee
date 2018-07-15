@@ -1,4 +1,4 @@
-import { get, post } from "./http"
+import { getJson, postJson } from "./http"
 
 # Check the health of various Mojang services.
 #
@@ -12,7 +12,7 @@ import { get, post } from "./http"
 # @throws {non-200} - When status servers are down, which should not happen.
 # @returns {integer|json} - HTTP status code and array of service statuses.
 export health = ->
-  get("https://status.mojang.com/check", ttl: 0) # No caching
+  getJson("https://status.mojang.com/check", ttl: 0) # No caching
 
 # Get the UUID of a username at a given point in time.
 #
@@ -29,7 +29,7 @@ export health = ->
 # @returns {integer|json} - HTTP status code and JSON response with UUID.
 export usernameToUuid = (username, secs = -1) ->
   time = if secs >= 0 then "?at=#{secs}" else ""
-  get("https://api.mojang.com/users/profiles/minecraft/#{username}#{time}")
+  getJson("https://api.mojang.com/users/profiles/minecraft/#{username}#{time}")
 
 # Get the UUIDs of multiple usernames at the current time.
 #
@@ -47,7 +47,7 @@ export usernameToUuid = (username, secs = -1) ->
 # @throws {400} - When given an empty or null username.
 # @returns {integer|json} - HTTP status code and JSON response with UUIDs.
 export usernameToUuidBulk = (usernames...) ->
-  post("https://api.mojang.com/profiles/minecraft", usernames)
+  postJson("https://api.mojang.com/profiles/minecraft", usernames)
 
 # Get the history of usernames for the given UUID.
 #
@@ -65,7 +65,7 @@ export usernameToUuidBulk = (usernames...) ->
 # @param {string} id - The UUID to check the username history for.
 # @returns {integer|json} - HTTP status code and JSON of username history.
 export uuidToUsernameHistory = (id) ->
-  get("https://api.mojang.com/user/profiles/#{id}/names")
+  getJson("https://api.mojang.com/user/profiles/#{id}/names")
 
 # Get the session profile of the UUID.
 #
@@ -86,7 +86,7 @@ export uuidToUsernameHistory = (id) ->
 # @param {string} id - The UUID to get the session profile of.
 # @returns {integer|json} - HTTP status code and JSON of session profile.
 export uuidToProfile = (id) ->
-  [err, profile] = await get("https://sessionserver.mojang.com/session/minecraft/profile/#{id}")
+  [err, profile] = await getJson("https://sessionserver.mojang.com/session/minecraft/profile/#{id}")
   unless err
     # Decode the base64 string into an embeded json value,
     # but preserve the previous value for backwards-compatibility.

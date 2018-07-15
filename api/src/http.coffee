@@ -1,33 +1,42 @@
-# Send a HTTP request.
+# Send a HTTP request and get a future json response.
 #
 # @param {string} url - URL to send the request.
 # @param {string} method - HTTP method to use (GET, POST, etc).
 # @param {integer} ttl - Time in seconds for Cloudflare to cache requests.
-# @param {boolean} raw - Whether to return just the raw response.
 # @param {object} extra - Extra parameters passed to fetch method.
-# @returns {[err, json]} - An error or JSON from a 200 status code.
-request = (url, method, {ttl, raw, extra} = {}) ->
+# @returns {[err|null, json|null]} - Either an error or the json body.
+export requestJson = (url, method, {ttl, extra} = {}) ->
+  response = await request(url, method, ttl: ttl, extra: extra)
+  err = coerce(response.status)
+  data = try await response.json() catch e then null
+  [err, data]
+
+# Send a HTTP request and get a future response.
+#
+# @param {string} url - URL to send the request.
+# @param {string} method - HTTP method to use (GET, POST, etc).
+# @param {integer} ttl - Time in seconds for Cloudflare to cache requests.
+# @returns {promise<response>} - Future response body.
+export request = (url, method, {ttl, extra} = {}) ->
   ttl ?= 60
   extra ?= {}
-  data = fetch(url, {
+  fetch(url, {
     method: method,
     cf: {cacheTtl: ttl} if ttl > 0,
-    headers: {"Content-Type": "application/json"}
-  }.merge(extra))
-  if raw
-    data
-  else
-    response = await data
-    err = coerce(response.status)
-    data = try JSON.parse(await response.text()) catch err then null
-    [err, data]
+    headers: {
+      "Content-Type": "application/json"
+      "Accept-Encoding": "gzip"
+  }}.merge(extra))
 
-# Redirect to another URL without loading the response.
+# Redirect to another host URL.
 #
-# @param {string} url - URL of the request, must be an internal domain.
-# @returns {promise<response>} - Promise of a request, do NOT await.
+# The new URL must be on the same domain as the previous domain,
+# because Cloudflare will throw cross-domain errors.
+#
+# @param {string} url - URL of the forwarding request.
+# @returns {promise<response>} - Future HTTP response.
 export redirect = (url) ->
-  request(url = new URL(url), "GET", raw: true, extra: {cf: {resolveOverride: url.hostname}})
+  get(url = new URL(url), extra: {cf: {resolveOverride: url.hostname}})
 
 # Send a GET HTTP request.
 #
@@ -35,16 +44,25 @@ export redirect = (url) ->
 export get = (url, options = {}) ->
   request(url, "GET", options)
 
+# Send a GET HTTP request as JSON.
+#
+# @see #requestJson(url, method, ttl, extra)
+export getJson = (url, options = {}) ->
+  requestJson(url, "GET", options)
+
 # Send a POST HTTP request.
 #
 # @see #request(url, method, ttl, extra)
-export post = (url, json, options = {}) ->
-  request(url, "POST", {extra: {body: JSON.stringify(json)}}.merge(options))
+export post = (url, body, options = {}) ->
+  request(url, "POST", {extra: {body: body}}.merge(options))
+
+# Send a POST HTTP request as JSON
+#
+# @see #requestJson(url, method, ttl, extra)
+export postJson = (url, json, options = {}) ->
+  requestJson(url, "POST", {extra: {body: JSON.stringify(json)}}.merge(options))
 
 # Respond to a HTTP request from a client.
-#
-# This only creates the response, the implementation
-# is responsible for sending this to the client.
 #
 # @param {json} json - JSON payload sent back to the client.
 # @param {integer} code - HTTP status code.
