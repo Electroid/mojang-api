@@ -1,6 +1,6 @@
 import "./util"
-import { notFound } from "./http"
-import { uuid, user, avatar } from "./api"
+import { notFound, get } from "./http"
+import { uuid, user } from "./api"
 
 addEventListener("fetch", (event) ->
   event.respondWith(route(event.request)))
@@ -13,5 +13,5 @@ route = (request) ->
       if method == "user"
         [err, res] = await user(id)
       else if method == "avatar"
-        res = avatar(id, extra)
+        res = get("https://us-central1-stratus-197318.cloudfunctions.net/avatar/#{id}/#{extra}", ttl: 86400)
   err || res || notFound("Unknown Route")
