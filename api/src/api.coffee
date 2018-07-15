@@ -1,4 +1,4 @@
-import { json, invalidRequest, post, redirect } from "./http"
+import { json, error, invalidRequest } from "./http"
 import { usernameToUuid, uuidToProfile, uuidToUsernameHistory } from "./mojang"
 
 # If given a username, find its UUID, otherwise
@@ -18,32 +18,25 @@ export uuid = (str) ->
 # Return the omnibus profile of a user given their UUID.
 #
 # @param {string} id - UUID of the user.
-# @param {[err, object]} - HTTP error or a user profile.
+# @param {[err, json]} - HTTP error or a user profile response.
 export user = (id) ->
-  [err, profile] = await uuidToProfile(id)
-  unless err
-    [err, history] = await uuidToUsernameHistory(id)
-    unless err
-      return [null, json
-        uuid: id = profile.id
-        uuid_dashed: id.asUuid(dashed: true)
-        username: profile.name
-        username_history: history.map (item) ->
-          username: item.name
-          changed_at: item.changedToAt?.asDate()
-        textures:
-          skin: profile.textures.SKIN?.url
-          cape: profile.textures.CAPE?.url
-          slim: profile.textures.SKIN?.metadata?.model == "slim"
-        cached_at: new Date()]
-  [err, null]
-
-# Redirect a request to the avatar service.
-#
-# @param {string} id - Valid UUID.
-# @param {integer} size - Size in pixels to render the avatar.
-export avatar = (id, size) ->
-  if Math.random() < 0.10
-    post("https://us-central1-stratus-197318.cloudfunctions.net/avatar", {id: id, size: size}, {raw: true, ttl: 86400})
+  [profile, history] = await Promise.all([
+    uuidToProfile(id)
+    uuidToUsernameHistory(id)])
+  if err = profile[0] || history[0]
+    [err, null]
+  else if (profile = profile[1]) && (history = history[1])
+    [null, json
+      uuid: id = profile.id
+      uuid_dashed: id.asUuid(dashed: true)
+      username: profile.name
+      username_history: history.map (item) ->
+        username: item.name
+        changed_at: item.changedToAt?.asDate()
+      textures:
+        skin: profile.textures.SKIN?.url
+        cape: profile.textures.CAPE?.url
+        slim: profile.textures.SKIN?.metadata?.model == "slim"
+      cached_at: new Date()]
   else
-    redirect("https://avatar.ashcon.app/#{id.asUuid(dashed: true)}/256@2x.png")
+    [invalidRequest("Invalid UUID '#{id}'"), null]
