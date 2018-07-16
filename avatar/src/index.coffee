@@ -1,5 +1,4 @@
 express = require("express")()
-port = process.env.PORT || 3000
 
 express.get("/:id?/:size?", (req, res) ->
   start = new Date()
@@ -17,7 +16,8 @@ express.get("/:id?/:size?", (req, res) ->
     .then((status) ->
       duration = new Date().getTime() - start.getTime()
       ip = req.get("CF-Connecting-IP") || req.ip
-      console.log("[#{status}] #{ip} -> /#{id}/#{size} (#{duration}ms)")))
+      unless id == "Steve"
+        console.log("[#{status}] #{ip} -> /#{id}/#{size} (#{duration}ms)")))
 
 express.enable("trust proxy", true)
-express.listen(port, () -> console.log("[INFO] Listening on #{port}..."))
+express.listen(80, () -> console.log("[INFO] Listening..."))
