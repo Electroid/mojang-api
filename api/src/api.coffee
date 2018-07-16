@@ -1,4 +1,4 @@
-import { json, error, invalidRequest } from "./http"
+import { json, error, invalidRequest, redirect } from "./http"
 import { usernameToUuid, uuidToProfile, uuidToUsernameHistory } from "./mojang"
 
 # If given a username, find its UUID, otherwise
@@ -40,3 +40,11 @@ export user = (id) ->
       cached_at: new Date()]
   else
     [invalidRequest("Invalid UUID '#{id}'"), null]
+
+# Redirect to the avatar service to render the face of a user.
+#
+# @param {string} id - UUID of the user.
+# @param {integer} size - Size in pixels of the avatar.
+# @returns {promise<response>} - Avatar response as a PNG.
+export avatar = (id = "Steve", size = 8) ->
+  redirect("https://avatar.ashcon.app/#{id}/#{size}")
