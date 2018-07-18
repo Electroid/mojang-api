@@ -1,0 +1,13 @@
+Metadata-Version: 1.1
+Name: mojang-api
+Version: 1.0.0
+Summary: TODO
+Home-page: https://github.com/Electroid/mojang-api
+Author: Ashcon Partovi
+Author-email: ashcon@partovi.net
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent

@@ -1,0 +1,5 @@
+setup.py
+mojang_api.egg-info/PKG-INFO
+mojang_api.egg-info/SOURCES.txt
+mojang_api.egg-info/dependency_links.txt
+mojang_api.egg-info/top_level.txt
