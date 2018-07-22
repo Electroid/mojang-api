@@ -4,7 +4,11 @@
   "author": "Ashcon Partovi",
   "email": "ashcon@partovi.net",
   "description": "Render the face and hat of Minecraft users.",
-  "keywords": ["mojang", "minecraft", "avatar"],
+  "keywords": [
+    "mojang",
+    "minecraft",
+    "avatar"
+  ],
   "homepage": "https://github.com/Electroid/mojang-api/avatar",
   "repository": {
     "type": "git",
@@ -16,10 +20,12 @@
     "coffeescript": "^2.3.1"
   },
   "dependencies": {
-    "express": "4.16.3",
     "request": "^2.87.0",
     "request-promise-cache": "^2.0.0",
     "sharp": "^0.18.4"
+  },
+  "optionalDependencies": {
+    "express": "4.16.3"
   },
   "scripts": {
     "build": "mkdir -p dist && cat $(find src/ -type f -name *.coffee) | coffee -cbs > dist/bundle.js",

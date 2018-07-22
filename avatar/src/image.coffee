@@ -55,7 +55,7 @@ resize = (buf, size) ->
 resizeCoef = 2
 
 # Reduce IO operations because of impodency.
-sharp.cache(memory: os.freemem() * 1000 / 2)
+sharp.cache(memory: os.freemem() * 1000 * 0.75)
 
 # Allocate dedicated threads to process images.
 sharp.concurrency(8)
