@@ -1,107 +1,120 @@
-# Send a HTTP request and get a future json response.
+# Send a Http request and get a response.
 #
-# @param {string} url - URL to send the request.
-# @param {string} method - HTTP method to use (GET, POST, etc).
-# @param {integer} ttl - Time in seconds for Cloudflare to cache requests.
-# @param {object} extra - Extra parameters passed to fetch method.
-# @returns {[err|null, json|null]} - Either an error or the json body.
-export requestJson = (url, method, {ttl, extra} = {}) ->
-  response = await request(url, method, ttl: ttl, extra: extra)
-  err = coerce(response.status)
-  data = try await response.json() catch e then null
-  [err, data]
-
-# Send a HTTP request and get a future response.
-#
-# @param {string} url - URL to send the request.
-# @param {string} method - HTTP method to use (GET, POST, etc).
-# @param {integer} ttl - Time in seconds for Cloudflare to cache requests.
-# @returns {promise<response>} - Future response body.
-export request = (url, method, {ttl, extra} = {}) ->
+# @param {string} url - Url to send the request.
+# @param {string} method - Http method (get, post, etc).
+# @param {object} body - Optional body to be sent in the request.
+# @param {integer} ttl - Time in seconds for Cloudflare to cache the request.
+# @param {string} key - Custom cache key for Cloudflare to index.
+# @param {boolean} json - Whether to parse the response as json.
+# @param {boolean} base64 - Whether to parse the response as a base64 string.
+# @returns {promise<
+#   json -> [err, json]
+#   base64 -> string|null
+#   else -> response
+# >} - A different response based on the method parameters above.
+export request = (url, {method, body, ttl, key, json, base64} = {}) ->
+  unless url
+    return Promise.resolve(undefined)
+  method ?= "GET"
   ttl ?= 60
-  extra ?= {}
-  fetch(url, {
-    method: method,
-    cf: {cacheTtl: ttl} if ttl > 0,
-    headers: {
+  key ?= url
+  response = fetch(url,
+    method: method
+    body: body
+    cf:
+      cacheTtl: ttl
+      # Pro+ only.
+      polish: "lossless" if base64
+      # Enterprise only.
+      cacheKey: key
+      cacheTtlByStatus:
+        "200": ttl
+        "400-499": 1
+        "500-599": -1
+    headers:
+      "User-Agent": "mojang-api (https://api.ashcon.app/mojang)"
       "Content-Type": "application/json"
-      "Accept-Encoding": "gzip"
-  }}.merge(extra))
+      "Accept-Encoding": "gzip")
+  if parse = json || base64
+    response = await response
+  if json
+    if err = coerce(response.status)
+      [err, null]
+    else
+      [null, await response.json()]
+  else if base64
+    if response.ok
+      (await response.arrayBuffer()).asBase64()
+  else
+    response
 
-# Redirect to another host URL.
+# Send a get http request.
 #
-# The new URL must be on the same domain as the previous domain,
-# because Cloudflare will throw cross-domain errors.
-#
-# @param {string} url - URL of the forwarding request.
-# @returns {promise<response>} - Future HTTP response.
-export redirect = (url) ->
-  get(url = new URL(url), extra: {cf: {resolveOverride: url.hostname}})
-
-# Send a GET HTTP request.
-#
-# @see #request(url, method, ttl, extra)
+# @see #request(url)
 export get = (url, options = {}) ->
-  request(url, "GET", options)
+  request(url, options.merge(method: "GET"))
 
-# Send a GET HTTP request as JSON.
+# Send a post http request.
 #
-# @see #requestJson(url, method, ttl, extra)
-export getJson = (url, options = {}) ->
-  requestJson(url, "GET", options)
-
-# Send a POST HTTP request.
-#
-# @see #request(url, method, ttl, extra)
+# @see #request(url)
 export post = (url, body, options = {}) ->
-  request(url, "POST", {extra: {body: body}}.merge(options))
+  body = if options.json then JSON.stringify(body) else body
+  request(url, options.merge(method: "POST", body: body))
 
-# Send a POST HTTP request as JSON
+# Respond to a client with a http response.
 #
-# @see #requestJson(url, method, ttl, extra)
-export postJson = (url, json, options = {}) ->
-  requestJson(url, "POST", {extra: {body: JSON.stringify(json)}}.merge(options))
+# @param {object} data - Data to send back in the response.
+# @param {integer} code - Http status code.
+# @param {string} type - Http content type.
+# @param {boolean} json - Whether to respond in json.
+# @param {boolean} text - Whether to respond in plain text.
+# @returns {response} - Raw response object.
+export respond = (data, {code, type, json, text} = {}) ->
+  code ?= 200
+  if json
+    type = "application/json"
+    data = JSON.stringify(data, undefined, 2)
+  else if text
+    type = "text/plain"
+    data = String(data)
+  else
+    type ?= "application/octet-stream"
+  new Response(data, {status: code, headers: {"Content-Type": type}})
 
-# Respond to a HTTP request from a client.
+# Respond with a generic http error.
 #
-# @param {json} json - JSON payload sent back to the client.
-# @param {integer} code - HTTP status code.
-# @returns {response} - Encapsulated response object, not yet sent.
-respond = (json, code) ->
-  new Response(
-    JSON.stringify(json, undefined, 2),
-    {status: code, headers: {"Content-Type": "application/json", "Accept-Encoding": "gzip"}}
-  )
+# @see #respond(data)
+export error = (reason = null, {code, type} = {}) ->
+  code ?= 500
+  type ?= "Internal Error"
+  respond("#{code} - #{type}" + (if reason then " (#{reason})" else ""), code: code, text: true)
 
-# Respond to a HTTP request with a successful JSON response.
+# Respond with a 400 - bad request error.
 #
-# @see #respond(json, code)
-export json = (json) ->
-  respond(json, 200)
+# @see #error(code, message, reason)
+export badRequest = (reason = null) ->
+  error(reason, code: 400, type: "Bad Request")
 
-# Respond to a HTTP request with an error.
+# Respond with a 404 - not found error.
 #
-# @see #respond(json, code)
-export error = (code = 500, message = "Internal Error", reason = null) ->
-  respond({status: code, message: message + (if reason then " - #{reason}" else "")}, code)
+# @see #error(code, message, reason)
+export notFound = (reason = null) ->
+  error(reason, code: 404, type: "Not Found")
 
-export notFound = (msg = null) ->
-  error(404, "Not Found", msg)
-
-export invalidRequest = (msg = null) ->
-  error(400, "Invalid Request", msg)
-
-export tooManyRequests = (msg = null) ->
-  error(429, "Too Many Requests", msg)
-
-# Convert an upstream HTTP status code to a new error response.
+# Respond with a 429 - too many requests error.
 #
-# @param {integer} code - HTTP status code.
-# @returns {response|null} - An error response or null.
+# @see #error(code, message, reason)
+export tooManyRequests = (reason = null) ->
+  error(reason, code: 429, type: "Too Many Requests")
+
+# Convert common http error codes into error responses.
+#
+# @param {integer} code - Http status code.
+# @returns {response|null} - An error response or null if a 200 code.
 export coerce = (code) ->
   switch code
     when 200 then null
     when 204 then notFound()
     when 400 then invalidRequest()
     when 429 then tooManyRequests()
-    else error()
+    else error("Unknown Response", code: code)

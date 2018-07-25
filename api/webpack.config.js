@@ -12,7 +12,6 @@ module.exports = {
   watchOptions: {
     ignored: /node_modules|dist|\.js/g,
   },
-  //devtool: 'cheap-module-eval-source-map',
   resolve: {
     extensions: ['.coffee', '.js', '.json'],
     plugins: [],
@@ -22,7 +21,7 @@ module.exports = {
       {
         test: /\.coffee?$/,
         loader: 'coffee-loader',
-      },
-    ],
+      }
+    ]
   }
 }
