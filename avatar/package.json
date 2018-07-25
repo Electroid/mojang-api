@@ -5,8 +5,8 @@
   "email": "ashcon@partovi.net",
   "description": "Render the face and hat of Minecraft users.",
   "keywords": [
-    "mojang",
     "minecraft",
+    "mojang",
     "avatar"
   ],
   "homepage": "https://github.com/Electroid/mojang-api/avatar",

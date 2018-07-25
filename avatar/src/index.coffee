@@ -1,6 +1,6 @@
 reply = (req, res) ->
   [id, size] = req.url.split("/")[1..2]
-  id ?= "Steve"
+  id = id.trim() || "Steve"
   size = Math.min(1024, Math.max(8, parseInt(size) || 8))
   render(id, size)
     .then((buf) ->
