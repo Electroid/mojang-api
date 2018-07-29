@@ -28,9 +28,10 @@ export request = (url, {method, body, ttl, key, json, base64} = {}) ->
       # Enterprise only.
       cacheKey: key
       cacheTtlByStatus:
-        "200": ttl
-        "400-499": 1
-        "500-599": -1
+        "200-299": ttl
+        "300-399": -1
+        "400-404": +1
+        "405-599": -1
     headers:
       "User-Agent": "mojang-api (https://api.ashcon.app/mojang)"
       "Content-Type": "application/json"
