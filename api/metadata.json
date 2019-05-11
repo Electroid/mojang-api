@@ -1,0 +1,15 @@
+{
+  "body_part": "script",
+  "bindings": [
+    {
+      "name": "CREATED_AT",
+      "type": "kv_namespace",
+      "namespace_id": "2a77a075b8454deaafc2624fb9f63ea8"
+    },
+    {
+      "name": "NAME_TO_UUID",
+      "type": "kv_namespace",
+      "namespace_id": "6eee28402dbc46b0b6ee291a909e77b9"
+    }
+  ]
+}

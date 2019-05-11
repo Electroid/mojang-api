@@ -1,6 +1,6 @@
 {
   "name": "mojang-api",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Fast caching layer for the Mojang API.",
   "author": "Ashcon Partovi",
   "email": "ashcon@partovi.net",
@@ -20,7 +20,7 @@
     "build": "webpack",
     "build:watch": "webpack --watch",
     "deploy": "serverless deploy",
-    "preview": "workers-preview < dist/bundle.js",
+    "preview": "workers-preview < dist/bundleV2.js",
     "test": "jest"
   },
   "devDependencies": {
@@ -48,5 +48,8 @@
       "node_modules",
       "src"
     ]
+  },
+  "dependencies": {
+    "pngjs": "^3.4.0"
   }
 }

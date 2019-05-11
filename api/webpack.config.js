@@ -5,10 +5,11 @@ module.exports = {
     bundle: path.join(__dirname, './src/index.coffee'),
   },
   output: {
-    filename: 'bundle.js',
+    filename: 'bundleV2.js',
     path: path.join(__dirname, 'dist'),
   },
   mode: 'production',
+  // devtool: 'cheap-module-source-map',
   watchOptions: {
     ignored: /node_modules|dist|\.js/g,
   },

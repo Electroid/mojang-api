@@ -58,6 +58,12 @@ usernamePattern = /^[0-9A-Za-z_]{1,16}$/i
 Number::asDate = ->
   new Date(Math.floor(this))
 
+# Ensure that the unix number is a ISO date string.
+#
+# @returns {string} - The number as an ISO date string.
+Number::asDay = ->
+  this.asDate().toISOString().split('T')[0]
+
 # Determine if the object is empty.
 #
 # @returns {boolean} - Whether the object is empty.

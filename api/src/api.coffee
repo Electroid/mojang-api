@@ -1,84 +1,91 @@
-import { get, respond, error, notFound, badRequest } from "./http"
+import { request, buffer, respond, badRequest, notFound } from "./http"
 import { usernameToUuid, uuidToProfile, uuidToUsernameHistory, uuidIsSlim, textureAlex, textureSteve } from "./mojang"
 
-# Get the uuid of a user given their username.
+# Get the Uuid of a user given their name.
 #
 # @param {string} name - Minecraft username, must be alphanumeric 16 characters.
-# @returns {[err, response]} - An error or the dashed uuid of the user.
+# @returns {promise<response>} - An error or a Uuid response as text.
 export uuid = (name) ->
-  if name.asUsername()
-    [err, res] = await usernameToUuid(name)
-    if id = res?.id?.asUuid(dashed: true)
-      [null, respond(id, text: true)]
-    else
-      [err || notFound(), null]
-  else
-    [badRequest("malformed username '#{name}'"), null]
+  unless name.asUsername()
+    return badRequest("Invalid format for the name '#{name}'")
+  unless id = await NAMES.get(name.toLowerCase(), "text")
+    unless response = await usernameToUuid(name)
+      return notFound("No user with the name '#{name}' was found")
+    id = response.id?.asUuid(dashed: true)
+    await NAMES.put(name.toLowerCase(), id, {expirationTtl: 60 * 5})
+  respond(id, text: true)
 
-# Get the full profile of a user given their uuid or username.
+# Get the profile of a user given their Uuid or name.
 #
-# @param {string} id - Minecraft username or uuid.
-# @returns {[err, json]} - An error or user profile.
+# @param {string} id - Uuid or Minecraft username.
+# @returns {promise<response>} - An error or a profile response as Json.
 export user = (id) ->
   if id.asUsername()
-    [err, res] = await uuid(id)
-    if err
-      [err, null]
-    else # Recurse with the new UUID.
-      await user(id = await res.text())
-  else if id.asUuid()
-    [[err0, profile], [err1, history]] = await Promise.all([
-      uuidToProfile(id = id.asUuid())
-      uuidToUsernameHistory(id)])
-    [err2, texture] = await textures(profile)
-    if err = err0 || err1 || err2
-      [err, null]
-    else
-      [null, respond(
-        uuid: profile.id.asUuid(dashed: true)
-        username: profile.name
-        username_history: history.map((item) ->
-          username: item.name
-          changed_at: item.changedToAt?.asDate())
-        textures: texture
-        cached_at: new Date(),
-      json: true)]
-  else
-    [badRequest("malformed uuid '#{id}'"), null]
-
-# Parse and decode base64 textures from the user profile.
-#
-# @param {json} profile - User profile from #uuidToProfile(id).
-# @returns {json} - Enhanced user profile with more convient texture fields.
-textures = (profile) ->
+    if (response = await uuid(id)).ok
+      response = user(await response.text())
+    return response
+  unless id.asUuid()
+    return badRequest("Invalid format for the UUID '#{id}'")
+  if response = await USERS.get(id.asUuid(dashed: true), "json")
+    return respond(response, json: true)
+  [profile, history] = await Promise.all([
+    uuidToProfile(id = id.asUuid()),
+    uuidToUsernameHistory(id)])
   unless profile
-    return [error("no user profile found"), null]
-  properties = profile.properties
-  if properties.length == 1
-    texture = properties[0]
-  else
-    texture = properties.filter((pair) -> pair.name == "textures" && pair.value?)[0]
-  if !texture || (texture = JSON.parse(atob(texture.value)).textures).isEmpty()
-    [type, skin] = if uuidIsSlim(profile.id) then ["alex", textureAlex] else ["steve", textureSteve]
-    skinUrl = "http://assets.mojang.com/SkinTemplates/#{type}.png"
-  else
+    return notFound("No user with the UUID '#{id}' was found")
+  unless history
+    history = [name: profile.name]
+  texturesRaw = profile.properties?.filter((item) -> item.name == "textures")[0]
+  textures = JSON.parse(atob(texturesRaw?.value || btoa("{}"))).textures
+  unless textures.isEmpty()
     [skin, cape] = await Promise.all([
-      get(skinUrl = texture.SKIN?.url, base64: true, ttl: 86400)
-      get(capeUrl = texture.CAPE?.url, base64: true, ttl: 86400)])
+      buffer(skinUrl) if skinUrl = textures.SKIN?.url,
+      buffer(capeUrl) if capeUrl = textures.CAPE?.url])
   unless skin
-    [error("unable to fetch skin '#{skinUrl}'"), null]
-  else
-    texture =
+    [type, skin] = if uuidIsSlim(id) then ["alex", textureAlex] else ["steve", textureSteve]
+    skinUrl = "http://assets.mojang.com/SkinTemplates/#{type}.png"
+  if history.length == 1
+    date = await created(id, profile.name)
+  response =
+    uuid: id = profile.id.asUuid(dashed: true)
+    username: profile.name
+    username_history: history.map((item) ->
+      username: item.name
+      changed_at: item.changedToAt?.asDate())
+    textures:
       custom: !type?
-      slim: texture.SKIN?.metadata?.model == "slim" || type == "alex"
+      slim: textures.SKIN?.metadata?.model == "slim" || type == "alex"
       skin: {url: skinUrl, data: skin}
-      cape: {url: capeUrl, data: cape} if capeUrl
-    [null, texture]
+      cape: {url: capeUrl, data: cape} if capeUrl,
+      raw: {value: texturesRaw.value, signature: texturesRaw.signature}
+    created_at: date
+  await USERS.put(id, JSON.stringify(response), {expirationTtl: 60 * 5})
+  respond(response, json: true)
+
+# Approximate the date a user was created to within a day.
+#
+# @param {string} id - Uuid of the user.
+# @param {string} name - Minecraft name of the user.
+# @param {integer} lower - Lower bound of search in unix milliseconds.
+# @param {integer} upper - Upper bound of search in unix milliseconds.
+# @param {integer} side - Determines a left or right binary search.
+# @param {boolean} accurate - Whether the results can be considered accurate.
+# @returns {date} Approximate date of user creation or null if not accurate.
+export created = (id, name, lower = 1242518400000, upper = Math.floor(Date.now()), side = 0, accurate = false) ->
+  unless date = await BIRTHDAYS.get(id, "text")
+    middle = lower + Math.floor((upper - lower) / 2)
+    if lower.asDay() == upper.asDay()
+      await BIRTHDAYS.put(id, date = if accurate then middle.asDay() else "null")
+    else if response = await usernameToUuid(name, Math.floor(middle / 1000))
+      return created(id, name, lower, middle, -1, accurate || side - 1 == 0)
+    else
+      return created(id, name, middle, upper, +1, accurate || side + 1 == 0)
+  return if date == "null" then null else date
 
 # Redirect to the avatar service to render the face of a user.
 #
 # @param {string} id - Uuid of the user.
 # @param {integer} size - Size in pixels of the avatar.
-# @returns {promise<response>} - Avatar response as a png.
+# @returns {promise<response>} - Avatar response as a Png.
 export avatar = (id = "Steve", size = 8) ->
-  get("https://avatar.ashcon.app/#{id}/#{size}")
+  request("https://us-central1-ashcon-app.cloudfunctions.net/avatar/#{id}/#{size}")

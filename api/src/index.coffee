@@ -1,25 +1,32 @@
 import "./util"
-import { notFound } from "./http"
+import { error, notFound } from "./http"
 import { uuid, user, avatar } from "./api"
 
 addEventListener("fetch", (event) ->
   event.respondWith(route(event.request)))
 
-route = (request) ->
-  [base, version, method, id, extra] = request.url.split("/")[3..7]
-  if base == "mojang" && id?
-    if version == "v1"
-      v1(method, id, extra)
-    else
-      notFound("unknown api version '#{version}'")
-  else
-    notFound("unknown route")
+routeDebug = (request) ->
+  try
+    await route(request)
+  catch err
+    error(err.stack || err)
 
-v1 = (method, id, extra) ->
+route = (request) ->
+  [base, version, method, arg, extra] = request.url.split("/")[3..7]
+  if base == "mojang" && arg?
+    if version == "v2"
+      v2(method, arg, extra)
+    else
+      notFound("Unknown API version '#{version}'")
+  else
+    notFound("Unknown route")
+
+v2 = (method, arg, extra) ->
   if method == "uuid"
-    [err, res] = await uuid(id)
+    uuid(arg)
   else if method == "user"
-    [err, res] = await user(id)
+    user(arg)
   else if method == "avatar"
-    res = avatar(id, extra)
-  err || res || notFound("unknown v1 route '#{method}'")
+    avatar(arg, extra)
+  else
+    notFound("Unknown v2 route '#{method}'")

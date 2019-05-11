@@ -1,68 +1,70 @@
 # Send a Http request and get a response.
 #
-# @param {string} url - Url to send the request.
-# @param {string} method - Http method (get, post, etc).
-# @param {object} body - Optional body to be sent in the request.
-# @param {integer} ttl - Time in seconds for Cloudflare to cache the request.
-# @param {string} key - Custom cache key for Cloudflare to index.
-# @param {boolean} json - Whether to parse the response as json.
-# @param {boolean} base64 - Whether to parse the response as a base64 string.
-# @returns {promise<
-#   json -> [err, json]
-#   base64 -> string|null
-#   else -> response
-# >} - A different response based on the method parameters above.
-export request = (url, {method, body, ttl, key, json, base64} = {}) ->
-  unless url
-    return Promise.resolve(undefined)
+# @param {string} url - Url of the request.
+# @param {string} method - Http method.
+# @param {string} type - Return type of the request.
+# @param {object} body - Body to be sent with the request.
+# @param {integer} ttl - Number of seconds to cache results.
+# @param {function} parser - Function to parse the raw response.
+# @returns {promise<response>} - Promise of the parsed response.
+export request = (url, {method, type, body, ttl, parser} = {}) ->
+  method ?= "POST" if body
   method ?= "GET"
-  ttl ?= 60
-  key ?= url
   response = fetch(url,
     method: method
     body: body
     cf:
-      cacheTtl: ttl
-      # Pro+ only.
-      polish: "lossless" if base64
-      # Enterprise only.
-      cacheKey: key
+      mirage: true
+      polish: "lossy"
+      cacheTtl: ttl ?= 60
       cacheTtlByStatus:
         "200-299": ttl
-        "300-399": -1
-        "400-404": +1
-        "405-599": -1
+        "300-399": 10
+        "400-499": 0
+        "500-599": -1
     headers:
-      "User-Agent": "mojang-api (https://api.ashcon.app/mojang)"
-      "Content-Type": "application/json"
-      "Accept-Encoding": "gzip")
-  if parse = json || base64
+      "Content-Type": type
+      "User-Agent": "mojang-api (https://api.ashcon.app/mojang/v2)")
+  if parser
     response = await response
-  if json
-    if err = coerce(response.status)
-      [err, null]
+    if response.ok && response.status < 204
+      response = await parser(response)
     else
-      [null, await response.json()]
-  else if base64
-    if response.ok
-      (await response.arrayBuffer()).asBase64()
-  else
-    response
+      response = null
+  response
 
-# Send a get http request.
+# Send a Http request and get a Json response.
 #
-# @see #request(url)
-export get = (url, options = {}) ->
-  request(url, options.merge(method: "GET"))
+# @param {string} url - Url of the request.
+# @param {object} body - Json body to be sent with the request.
+# @param {integer} ttl - Number of seconds to cache results.
+# @returns {promise<object>} - Promise of a Json response.
+export json = (url, {body, ttl} = {}) ->
+  request(url,
+    ttl: ttl,
+    type: "application/json"
+    body: JSON.stringify(body) if body
+    parser: ((response) -> await response.json()))
 
-# Send a post http request.
+# Send a Http request and get a Buffer response.
 #
-# @see #request(url)
-export post = (url, body, options = {}) ->
-  body = if options.json then JSON.stringify(body) else body
-  request(url, options.merge(method: "POST", body: body))
+# @param {string} url - Url of the request.
+# @param {object} body - Body to be sent with the request.
+# @param {integer} ttl - Number of seconds to cache results.
+# @param {boolean} base64 - Whether to encode the response as base64.
+# @returns {promise<object>} - Promise of a Buffer response.
+export buffer = (url, {body, ttl, base64} = {}) ->
+  base64 ?= true
+  request(url,
+    ttl: ttl,
+    body: body
+    parser: ((response) ->
+      response = await response.arrayBuffer()
+      if base64
+        response = response.asBase64()
+      response))
 
-# Respond to a client with a http response.
+# Respond to a client with a Http response.
 #
 # @param {object} data - Data to send back in the response.
 # @param {integer} code - Http status code.
@@ -82,40 +84,28 @@ export respond = (data, {code, type, json, text} = {}) ->
     type ?= "application/octet-stream"
   new Response(data, {status: code, headers: {"Content-Type": type}})
 
-# Respond with a generic http error.
+# Respond with a generic Http error.
 #
 # @see #respond(data)
 export error = (reason = null, {code, type} = {}) ->
   code ?= 500
   type ?= "Internal Error"
-  respond("#{code} - #{type}" + (if reason then " (#{reason})" else ""), code: code, text: true)
+  respond({code: code, error: type, reason: reason}, code: code, json: true)
 
-# Respond with a 400 - bad request error.
+# Respond with a 400 - Bad Request error.
 #
 # @see #error(code, message, reason)
 export badRequest = (reason = null) ->
   error(reason, code: 400, type: "Bad Request")
 
-# Respond with a 404 - not found error.
+# Respond with a 404 - Not Found error.
 #
 # @see #error(code, message, reason)
 export notFound = (reason = null) ->
   error(reason, code: 404, type: "Not Found")
 
-# Respond with a 429 - too many requests error.
+# Respond with a 429 - Too Many Requests error.
 #
 # @see #error(code, message, reason)
 export tooManyRequests = (reason = null) ->
   error(reason, code: 429, type: "Too Many Requests")
-
-# Convert common http error codes into error responses.
-#
-# @param {integer} code - Http status code.
-# @returns {response|null} - An error response or null if a 200 code.
-export coerce = (code) ->
-  switch code
-    when 200 then null
-    when 204 then notFound()
-    when 400 then invalidRequest()
-    when 429 then tooManyRequests()
-    else error("Unknown Response", code: code)
