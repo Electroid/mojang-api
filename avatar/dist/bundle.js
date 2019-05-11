@@ -77,7 +77,7 @@ sharp.simd(true);
 reply = function(req, res) {
   var id, size;
   [id, size] = req.url.split("/").slice(1, 3);
-  id = id.trim() || "Steve";
+  id = (id || "Steve").trim();
   size = Math.min(1024, Math.max(8, parseInt(size) || 8));
   return render(id, size).then(function(buf) {
     return [200, buf];
