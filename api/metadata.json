@@ -2,14 +2,19 @@
   "body_part": "script",
   "bindings": [
     {
-      "name": "CREATED_AT",
+      "name": "USERS",
       "type": "kv_namespace",
-      "namespace_id": "2a77a075b8454deaafc2624fb9f63ea8"
+      "namespace_id": "ba64684b6f3c44778748d3e3010a81dd"
     },
     {
-      "name": "NAME_TO_UUID",
+      "name": "NAMES",
       "type": "kv_namespace",
-      "namespace_id": "6eee28402dbc46b0b6ee291a909e77b9"
+      "namespace_id": "f4e19fdf2b2c43d4869071de5e1c59f8"
+    },
+    {
+      "name": "BIRTHDAYS",
+      "type": "kv_namespace",
+      "namespace_id": "297276ad8bd3474b8344558da7f8e5f0"
     }
   ]
 }
