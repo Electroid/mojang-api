@@ -10,7 +10,7 @@ I have deployed this on my personal domain `ashcon.app` and am opening it up for
 ### Single Request *(now)*
 
 Username or UUID -> Everything<br>
-[https://api.ashcon.app/mojang/v1/user/[username|uuid]](https://api.ashcon.app/mojang/v1/user/ElectroidFilms) `(click for example)`
+[https://api.ashcon.app/mojang/v2/user/[username|uuid]](https://api.ashcon.app/mojang/v2/user/Notch) `(click for example)`
 ```
 {
   "uuid": <uuid>,
@@ -31,9 +31,13 @@ Username or UUID -> Everything<br>
     "cape": {
       "url": <url|null>,
       "data": <base64|null>
+    },
+    "raw": {
+      "value": <base64>,
+      "signature": <base64>
     }
   },
-  "cached_at": <date>
+  "created_at": <date|null>
 }
 ```
 
@@ -81,5 +85,5 @@ UUID -> Profile + Textures<br>
 npm i
 npm run build
 npm run preview -- \
-  --preview-url https://localhost/mojang/v1/user/Notch
+  --preview-url https://localhost/mojang/v2/user/Notch
 ```
