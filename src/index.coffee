@@ -12,21 +12,21 @@ routeDebug = (request) ->
     error(err.stack || err)
 
 route = (request) ->
-  [base, version, method, arg, extra] = request.url.split("/")[3..7]
+  [base, version, method, arg] = request.url.split("/")[3..6]
   if base == "mojang" && arg?
     if version == "v2"
-      v2(method, arg, extra)
+      v2(method, arg)
     else
       notFound("Unknown API version '#{version}'")
   else
     notFound("Unknown route")
 
-v2 = (method, arg, extra) ->
+v2 = (method, arg) ->
   if method == "uuid"
     uuid(arg)
   else if method == "user"
     user(arg)
   else if method == "avatar"
-    avatar(arg, extra)
+    avatar(arg)
   else
     notFound("Unknown v2 route '#{method}'")
