@@ -1,5 +1,6 @@
-import { request, buffer, respond, badRequest, notFound } from "./http"
-import { usernameToUuid, uuidToProfile, uuidToUsernameHistory, uuidIsSlim, textureAlex, textureSteve } from "./mojang"
+import { pngToSvg } from "./image"
+import { request, json, buffer, respond, error, badRequest, notFound } from "./http"
+import { usernameToUuid, uuidToProfile, uuidToUsernameHistory, uuidIsSlim, textureAlex, textureSteve, uuidSteve } from "./mojang"
 
 # Get the Uuid of a user given their name.
 #
@@ -85,7 +86,25 @@ export created = (id, name, lower = 1242518400000, upper = Math.floor(Date.now()
 # Redirect to the avatar service to render the face of a user.
 #
 # @param {string} id - Uuid of the user.
-# @param {integer} size - Size in pixels of the avatar.
-# @returns {promise<response>} - Avatar response as a Png.
-export avatar = (id = "Steve", size = 8) ->
-  request("https://us-central1-ashcon-app.cloudfunctions.net/avatar/#{id}/#{size}")
+# @returns {promise<response>} - Avatar response as a Svg.
+export avatar = (id) ->
+  if !id.asUsername() && !id.asUuid()
+    return avatar(uuidSteve)
+  unless svg = await AVATARS.get(id.toLowerCase(), "text")
+    try
+      profile = await json(user(id))
+      svg = pngToSvg(profile.textures.skin.data,
+        snap: true,
+        view: {width: 8, height: 8},
+        regions: [
+          {x: 8,  y: 8, width: 8, height: 8},
+          {x: 40, y: 8, width: 8, height: 8}])
+      if id != uuidSteve
+        options = {expirationTtl: 60 * 60}
+      await AVATARS.put(id.toLowerCase(), svg, options)
+    catch err
+      if id == uuidSteve
+        return error(err)
+      else
+        return avatar(uuidSteve)
+  respond(svg, svg: true)

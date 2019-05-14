@@ -10,21 +10,24 @@
 export request = (url, {method, type, body, ttl, parser} = {}) ->
   method ?= "POST" if body
   method ?= "GET"
-  response = fetch(url,
-    method: method
-    body: body
-    cf:
-      mirage: true
-      polish: "lossy"
-      cacheTtl: ttl ?= 60
-      cacheTtlByStatus:
-        "200-299": ttl
-        "300-399": 10
-        "400-499": 0
-        "500-599": -1
-    headers:
-      "Content-Type": type
-      "User-Agent": "mojang-api (https://api.ashcon.app/mojang/v2)")
+  if url instanceof Promise
+    response = url
+  else
+    response = fetch(url,
+      method: method
+      body: body
+      cf:
+        mirage: true
+        polish: "lossy"
+        cacheTtl: ttl ?= 60
+        cacheTtlByStatus:
+          "200-299": ttl
+          "300-399": 10
+          "400-499": 0
+          "500-599": -1
+      headers:
+        "Content-Type": type
+        "User-Agent": "mojang-api (https://api.ashcon.app/mojang/v2)")
   if parser
     response = await response
     if response.ok && response.status < 204
@@ -69,20 +72,26 @@ export buffer = (url, {body, ttl, base64} = {}) ->
 # @param {object} data - Data to send back in the response.
 # @param {integer} code - Http status code.
 # @param {string} type - Http content type.
+# @param {object} headers - Http headers.
 # @param {boolean} json - Whether to respond in json.
 # @param {boolean} text - Whether to respond in plain text.
+# @param {boolean} svg - Whether to respond in image svg.
 # @returns {response} - Raw response object.
-export respond = (data, {code, type, json, text} = {}) ->
+export respond = (data, {code, type, headers, json, text, svg} = {}) ->
   code ?= 200
+  headers ?= {}
   if json
     type = "application/json"
     data = JSON.stringify(data, undefined, 2)
   else if text
     type = "text/plain"
     data = String(data)
+  else if svg
+    type = "image/svg+xml"
+    data = String(data)
   else
     type ?= "application/octet-stream"
-  new Response(data, {status: code, headers: {"Content-Type": type}})
+  new Response(data, status: code, headers: headers.merge("Content-Type": type))
 
 # Respond with a generic Http error.
 #

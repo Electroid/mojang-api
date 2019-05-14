@@ -15,6 +15,11 @@
       "name": "BIRTHDAYS",
       "type": "kv_namespace",
       "namespace_id": "297276ad8bd3474b8344558da7f8e5f0"
+    },
+    {
+      "name": "AVATARS",
+      "type": "kv_namespace",
+      "namespace_id": "360dd7a808454c228457118f18ee4a88"
     }
   ]
 }

@@ -24,5 +24,15 @@ module.exports = {
         loader: 'coffee-loader',
       }
     ]
-  }
+  },
+  plugins: [
+    function() { // Certain build errors give no stack trace by default
+      this.plugin("done", function(stats) {
+        if (stats.compilation.errors && stats.compilation.errors.length) {
+            console.error(stats.compilation.errors)
+            process.exit(1)
+          }
+      })
+    }
+  ]
 }

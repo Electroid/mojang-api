@@ -19,34 +19,20 @@
   "scripts": {
     "build": "webpack",
     "build:watch": "webpack --watch",
-    "deploy": "serverless deploy",
-    "preview": "workers-preview < dist/bundleV2.js",
-    "test": "jest"
+    "preview": "workers-preview < dist/bundleV2.js --preview-url https://localhost/mojang/v2/avatar/Notch"
   },
   "devDependencies": {
     "coffee-loader": "^0.9.0",
     "coffeescript": "^2.3.1",
-    "jest": "^23.4.1",
-    "jest-coffee-preprocessor": "^1.0.0",
     "serverless-cloudflare-workers": "^0.1.1",
     "webpack": "^4.14.0",
     "webpack-cli": "^3.0.8",
     "webpack-command": "^0.4.0",
     "workers-preview": "^1.0.4"
   },
-  "jest": {
-    "verbose": true,
-    "testRegex": "/test/.*\\.coffee",
-    "transform": {
-      "^.+\\.coffee$": "<rootDir>/node_modules/jest-coffee-preprocessor/index.js"
-    },
-    "moduleFileExtensions": [
-      "coffee",
-      "js"
-    ],
-    "moduleDirectories": [
-      "node_modules",
-      "src"
-    ]
+  "dependencies": {
+    "browserify-zlib": "^0.2.0",
+    "pngjs": "^3.4.0",
+    "xmlbuilder": "^13.0.1"
   }
 }
