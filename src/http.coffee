@@ -19,15 +19,15 @@ export request = (url, {method, type, body, ttl, parser} = {}) ->
       cf:
         mirage: true
         polish: "lossy"
-        cacheTtl: ttl ?= 60
+        cacheTtl: ttl ?= 300
         cacheTtlByStatus:
           "200-299": ttl
-          "300-399": 10
-          "400-499": 0
-          "500-599": -1
+          "300-399": 120
+          "400-499": 60
+          "500-599": 0
       headers:
         "Content-Type": type
-        "User-Agent": "mojang-api (https://api.ashcon.app/mojang/v2)")
+        "User-Agent": "mojang-api/2.1 (+https://api.ashcon.app/mojang/v2)")
   if parser
     response = await response
     if response.ok && response.status < 204
