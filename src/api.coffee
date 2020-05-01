@@ -36,8 +36,8 @@ export user = (id) ->
     return notFound("No user with the UUID '#{id}' was found")
   unless history
     history = [name: profile.name]
-  texturesRaw = profile.properties?.filter((item) -> item.name == "textures")[0]
-  textures = JSON.parse(atob(texturesRaw?.value || btoa("{}"))).textures
+  texturesRaw = profile.properties?.filter((item) -> item.name == "textures")[0] || {}
+  textures = JSON.parse(atob(texturesRaw?.value || btoa("{}"))).textures || {}
   unless textures.isEmpty()
     [skin, cape] = await Promise.all([
       buffer(skinUrl) if skinUrl = textures.SKIN?.url,
@@ -58,7 +58,7 @@ export user = (id) ->
       slim: textures.SKIN?.metadata?.model == "slim" || type == "alex"
       skin: {url: skinUrl, data: skin}
       cape: {url: capeUrl, data: cape} if capeUrl,
-      raw: {value: texturesRaw.value, signature: texturesRaw.signature}
+      raw: {value: texturesRaw.value, signature: texturesRaw.signature} unless texturesRaw.isEmpty()
     created_at: date
   await USERS.put(id, JSON.stringify(response), {expirationTtl: 60 * 5})
   respond(response, json: true)

@@ -3,7 +3,7 @@ import { error, notFound } from "./http"
 import { uuid, user, avatar } from "./api"
 
 addEventListener("fetch", (event) ->
-  event.respondWith(route(event.request)))
+  event.respondWith(routeDebug(event.request)))
 
 routeDebug = (request) ->
   try
