@@ -45,7 +45,9 @@ export user = (id) ->
   unless skin
     [type, skin] = if uuidIsSlim(id) then ["alex", textureAlex] else ["steve", textureSteve]
     skinUrl = "http://assets.mojang.com/SkinTemplates/#{type}.png"
-  if history.length == 1
+  if profile.legacy || profile.demo
+    date = null
+  else
     date = await created(id, profile.name)
   response =
     uuid: id = profile.id.asUuid(dashed: true)
@@ -59,6 +61,8 @@ export user = (id) ->
       skin: {url: skinUrl, data: skin}
       cape: {url: capeUrl, data: cape} if capeUrl,
       raw: {value: texturesRaw.value, signature: texturesRaw.signature} unless texturesRaw.isEmpty()
+    legacy: true if profile.legacy
+    demo: true if profile.demo
     created_at: date
   await USERS.put(id, JSON.stringify(response), {expirationTtl: 60 * 5})
   respond(response, json: true)

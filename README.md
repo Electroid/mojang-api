@@ -37,6 +37,8 @@ Username or UUID -> Everything<br>
       "signature": <base64>
     }
   },
+  "legacy": <true|null>,
+  "demo": <true|null>,
   "created_at": <date|null>
 }
 ```
@@ -82,8 +84,6 @@ UUID -> Profile + Textures<br>
 ### Build
 
 ```
-npm i
-npm run build
-npm run preview -- \
-  --preview-url https://localhost/mojang/v2/user/Notch
+wrangler build
+wrangler preview
 ```

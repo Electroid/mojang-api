@@ -65,3 +65,7 @@ typings/
 
 # Serverless folder
 .serverless
+
+# wrangler files
+worker
+dist/worker.js

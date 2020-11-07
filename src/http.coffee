@@ -27,7 +27,7 @@ export request = (url, {method, type, body, ttl, parser} = {}) ->
           "500-599": 0
       headers:
         "Content-Type": type
-        "User-Agent": "mojang-api/2.1 (+https://api.ashcon.app/mojang/v2)")
+        "User-Agent": "mojang-api/2.2 (+https://api.ashcon.app/mojang/v2)")
   if parser
     response = await response
     if response.ok && response.status < 204
