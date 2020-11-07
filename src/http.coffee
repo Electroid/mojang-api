@@ -19,14 +19,15 @@ export request = (url, {method, type, body, ttl, parser} = {}) ->
       cf:
         mirage: true
         polish: "lossy"
+        cacheEverything: true
         cacheTtl: ttl ?= 300
         cacheTtlByStatus:
           "200-299": ttl
           "300-399": 120
           "400-499": 60
-          "500-599": 0
+          "500-599": 5
       headers:
-        "Content-Type": type
+        "Accept": type
         "User-Agent": "mojang-api/2.2 (+https://api.ashcon.app/mojang/v2)")
   if parser
     response = await response
@@ -79,7 +80,6 @@ export buffer = (url, {body, ttl, base64} = {}) ->
 # @returns {response} - Raw response object.
 export respond = (data, {code, type, headers, json, text, svg} = {}) ->
   code ?= 200
-  headers ?= {}
   if json
     type = "application/json"
     data = JSON.stringify(data, undefined, 2)
@@ -91,7 +91,20 @@ export respond = (data, {code, type, headers, json, text, svg} = {}) ->
     data = String(data)
   else
     type ?= "application/octet-stream"
-  new Response(data, status: code, headers: headers.merge("Content-Type": type))
+  headers ?=
+    "Access-Control-Allow-Origin": "*"
+    "Content-Type": type if code != 204
+  new Response(data, status: code, headers: headers)
+
+# Respond with a Cors preflight.
+#
+# @see #respond(data)
+export cors = ->
+  headers =
+    "Access-Control-Allow-Origin": "*"
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
+    "Access-Control-Max-Age": "86400"
+  respond(null, code: 204, headers: headers)
 
 # Respond with a generic Http error.
 #
