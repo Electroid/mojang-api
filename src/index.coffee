@@ -16,7 +16,7 @@ route = (request) ->
   if base == "mojang" && arg?
     if version == "v2"
       if request.method == "OPTIONS"
-        cors
+        cors()
       else
         v2(method, arg)
     else
