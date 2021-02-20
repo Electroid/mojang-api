@@ -34,7 +34,10 @@ export request = (url, {method, type, body, ttl, parser} = {}) ->
     if response.ok && response.status < 204
       response = await parser(response)
     else
-      response = null
+      if response.status != 204 && !response.ok
+        response = false
+      else
+        response = null // Null means No content 
   response
 
 # Send a Http request and get a Json response.
@@ -131,3 +134,10 @@ export notFound = (reason = null) ->
 # @see #error(code, message, reason)
 export tooManyRequests = (reason = null) ->
   error(reason, code: 429, type: "Too Many Requests")
+
+
+# Respond with a 502 - Bad Gateway error.
+#
+# @see #error(code, message, reason)
+export badGateway = (reason = null) ->
+  error(reason, code: 502, type: "Bad Gateway")

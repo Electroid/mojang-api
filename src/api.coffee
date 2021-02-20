@@ -11,6 +11,8 @@ export uuid = (name) ->
     return badRequest("Invalid format for the name '#{name}'")
   unless id = await NAMES.get(name.toLowerCase(), "text")
     unless response = await usernameToUuid(name)
+      if response == false 
+        return badGateway()
       return notFound("No user with the name '#{name}' was found")
     id = response.id?.asUuid(dashed: true)
     await NAMES.put(name.toLowerCase(), id, {expirationTtl: 60 * 5})
