@@ -1,14 +1,17 @@
-type = "webpack"
-webpack_config = "webpack.config.js"
 name = "mojang_api_v2"
+compatibility_date = "2017-01-01"
 account_id = "301982b3799377b8f6c0fbeeed3ee65f"
 zone_id = "1233d7f70968e8751cfd90318ae4c54c"
 routes = [
     "api.ashcon.app/mojang/v2*"
 ]
+workers_dev = false
 kv_namespaces = [
     { binding = "USERS", id = "ba64684b6f3c44778748d3e3010a81dd", preview_id = "ba64684b6f3c44778748d3e3010a81dd" },
     { binding = "NAMES", id = "f4e19fdf2b2c43d4869071de5e1c59f8", preview_id = "f4e19fdf2b2c43d4869071de5e1c59f8" },
     { binding = "BIRTHDAYS", id = "297276ad8bd3474b8344558da7f8e5f0", preview_id = "297276ad8bd3474b8344558da7f8e5f0" },
     { binding = "AVATARS", id = "360dd7a808454c228457118f18ee4a88", preview_id = "360dd7a808454c228457118f18ee4a88" }
 ]
+main = "dist/worker.js"
+[build]
+command = "npm run build"

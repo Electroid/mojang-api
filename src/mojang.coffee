@@ -23,13 +23,11 @@ export health = ->
 # }
 #
 # @param {string} username - Minecraft username.
-# @param {integer} secs - Unix seconds to set the search context.
 # @throws {204} - When no user exists with that name.
 # @throws {400} - When timestamp is invalid.
 # @returns {promise<object>} - Uuid response.
-export usernameToUuid = (username, secs = -1) ->
-  time = if secs >= 0 then "?at=#{secs}" else ""
-  json("https://api.mojang.com/users/profiles/minecraft/#{username}#{time}")
+export usernameToUuid = (username) ->
+  json("https://api.mojang.com/users/profiles/minecraft/#{username}")
 
 # Get the Uuids of multiple usernames at the current time.
 #

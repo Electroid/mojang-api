@@ -1,6 +1,6 @@
 import { pngToSvg } from "./image"
 import { request, json, buffer, respond, error, badRequest, notFound } from "./http"
-import { usernameToUuid, uuidToProfile, uuidToUsernameHistory, uuidIsSlim, textureAlex, textureSteve, uuidSteve } from "./mojang"
+import { usernameToUuid, uuidToProfile, uuidIsSlim, textureAlex, textureSteve, uuidSteve } from "./mojang"
 
 # Get the Uuid of a user given their name.
 #
@@ -10,10 +10,13 @@ export uuid = (name) ->
   unless name.asUsername()
     return badRequest("Invalid format for the name '#{name}'")
   unless id = await NAMES.get(name.toLowerCase(), "text")
-    unless response = await usernameToUuid(name)
+    [status, response] = await usernameToUuid(name)
+    if status == 204
       return notFound("No user with the name '#{name}' was found")
+    unless status == 200
+      return error("Failed to find user with the name '#{name}'", {status: status})
     id = response.id?.asUuid(dashed: true)
-    await NAMES.put(name.toLowerCase(), id, {expirationTtl: 60 * 5})
+    await NAMES.put(name.toLowerCase(), id, {expirationTtl: 3600})
   respond(id, text: true)
 
 # Get the profile of a user given their Uuid or name.
@@ -29,13 +32,12 @@ export user = (id) ->
     return badRequest("Invalid format for the UUID '#{id}'")
   if response = await USERS.get(id.asUuid(dashed: true), "json")
     return respond(response, json: true)
-  [profile, history] = await Promise.all([
-    uuidToProfile(id = id.asUuid()),
-    uuidToUsernameHistory(id)])
-  unless profile
+  [status, profile] = await uuidToProfile(id = id.asUuid())
+  if status == 204
     return notFound("No user with the UUID '#{id}' was found")
-  unless history
-    history = [name: profile.name]
+  unless status == 200
+    return error("Failed to find user with the UUID '#{id}'", {status: status})
+  history = [name: profile.name]
   texturesRaw = profile.properties?.filter((item) -> item.name == "textures")[0] || {}
   textures = JSON.parse(atob(texturesRaw?.value || btoa("{}"))).textures || {}
   unless textures.isEmpty()
@@ -64,27 +66,17 @@ export user = (id) ->
     legacy: true if profile.legacy
     demo: true if profile.demo
     created_at: date
-  await USERS.put(id, JSON.stringify(response), {expirationTtl: 60 * 5})
+  await USERS.put(id, JSON.stringify(response), {expirationTtl: 3600})
   respond(response, json: true)
 
 # Approximate the date a user was created to within a day.
 #
+# This no longer works, since Mojang disabled the API.
+#
 # @param {string} id - Uuid of the user.
-# @param {string} name - Minecraft name of the user.
-# @param {integer} lower - Lower bound of search in unix milliseconds.
-# @param {integer} upper - Upper bound of search in unix milliseconds.
-# @param {integer} side - Determines a left or right binary search.
-# @param {boolean} accurate - Whether the results can be considered accurate.
-# @returns {date} Approximate date of user creation or null if not accurate.
-export created = (id, name, lower = 1242518400000, upper = Math.floor(Date.now()), side = 0, accurate = false) ->
+export created = (id) ->
   unless date = await BIRTHDAYS.get(id, "text")
-    middle = lower + Math.floor((upper - lower) / 2)
-    if lower.asDay() == upper.asDay()
-      await BIRTHDAYS.put(id, date = if accurate then middle.asDay() else "null")
-    else if response = await usernameToUuid(name, Math.floor(middle / 1000))
-      return created(id, name, lower, middle, -1, accurate || side - 1 == 0)
-    else
-      return created(id, name, middle, upper, +1, accurate || side + 1 == 0)
+    await BIRTHDAYS.put(id, date = "null")
   return if date == "null" then null else date
 
 # Redirect to the avatar service to render the face of a user.
@@ -104,7 +96,7 @@ export avatar = (id) ->
           {x: 8,  y: 8, width: 8, height: 8},
           {x: 40, y: 8, width: 8, height: 8}])
       if id != uuidSteve
-        options = {expirationTtl: 60 * 60}
+        options = {expirationTtl: 86400}
       await AVATARS.put(id.toLowerCase(), svg, options)
     catch err
       if id == uuidSteve

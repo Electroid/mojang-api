@@ -1,6 +1,6 @@
 {
   "name": "mojang-api",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Fast caching layer for the Mojang API.",
   "author": "Ashcon Partovi",
   "email": "ashcon@partovi.net",
@@ -17,14 +17,17 @@
   "license": "MIT",
   "main": "src/index.coffee",
   "scripts": {
-    "build": "webpack",
-    "build:watch": "webpack --watch"
+    "build": "NODE_OPTIONS=--openssl-legacy-provider webpack",
+    "build:watch": "NODE_OPTIONS=--openssl-legacy-provider webpack --watch",
+    "dev": "wrangler dev"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20221111.1",
     "coffee-loader": "^0.9.0",
     "coffeescript": "^2.5.1",
     "webpack": "^4.44.2",
-    "webpack-cli": "^3.3.12"
+    "webpack-cli": "^3.3.12",
+    "wrangler": "^2.4.4"
   },
   "dependencies": {
     "browserify-zlib": "^0.2.0",
