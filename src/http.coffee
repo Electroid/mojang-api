@@ -25,8 +25,8 @@ export request = (url, {method, type, body, ttl, parser} = {}) ->
           "200-399": ttl
           "400-599": 60
       headers:
-        "Accept": type)
-        # "User-Agent": "mojang-api/2.2 (+https://api.ashcon.app/mojang/v2)")
+        "Accept": type
+        "User-Agent": "mojang-api/2.2 (+https://api.ashcon.app/mojang/v2)")
   response = await response
   status = response.status
   if parser
@@ -58,7 +58,7 @@ export json = (url, {body, ttl} = {}) ->
 # @returns {promise<object>} - Promise of a Buffer response.
 export buffer = (url, {body, ttl, base64} = {}) ->
   base64 ?= true
-  request(url,
+  [status, data] = await request(url,
     ttl: ttl,
     body: body
     parser: ((response) ->
@@ -66,6 +66,7 @@ export buffer = (url, {body, ttl, base64} = {}) ->
       if base64
         response = response.asBase64()
       response))
+  return data
 
 # Respond to a client with a Http response.
 #
@@ -110,7 +111,7 @@ export cors = ->
 # @see #respond(data)
 export error = (reason = null, {status, type} = {}) ->
   status ?= 500
-  type ?= "Internal Error"
+  type ?= new Response(null, {status: status}).statusText;
   respond({code: status, error: type, reason: reason}, status: status, json: true)
 
 # Respond with a 400 - Bad Request error.

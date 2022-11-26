@@ -88,7 +88,7 @@ export avatar = (id) ->
     return avatar(uuidSteve)
   unless svg = await AVATARS.get(id.toLowerCase(), "text")
     try
-      profile = await json(user(id))
+      [status, profile] = await json(user(id))
       svg = pngToSvg(profile.textures.skin.data,
         snap: true,
         view: {width: 8, height: 8},
