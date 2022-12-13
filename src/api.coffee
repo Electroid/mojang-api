@@ -11,7 +11,7 @@ export uuid = (name) ->
     return badRequest("Invalid format for the name '#{name}'")
   unless id = await NAMES.get(name.toLowerCase(), "text")
     [status, response] = await usernameToUuid(name)
-    if status == 204
+    if status == 204 || status == 404
       return notFound("No user with the name '#{name}' was found")
     unless status == 200
       return error("Failed to find user with the name '#{name}'", {status: status})
@@ -33,7 +33,7 @@ export user = (id) ->
   if response = await USERS.get(id.asUuid(dashed: true), "json")
     return respond(response, json: true)
   [status, profile] = await uuidToProfile(id = id.asUuid())
-  if status == 204
+  if status == 204 || status == 404
     return notFound("No user with the UUID '#{id}' was found")
   unless status == 200
     return error("Failed to find user with the UUID '#{id}'", {status: status})

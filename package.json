@@ -17,9 +17,10 @@
   "license": "MIT",
   "main": "src/index.coffee",
   "scripts": {
-    "build": "NODE_OPTIONS=--openssl-legacy-provider webpack",
-    "build:watch": "NODE_OPTIONS=--openssl-legacy-provider webpack --watch",
-    "dev": "wrangler dev"
+    "build": "webpack",
+    "build:watch": "webpack --watch",
+    "dev": "wrangler dev",
+    "deploy": "wrangler publish"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20221111.1",
