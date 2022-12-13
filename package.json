@@ -26,7 +26,7 @@
     "@cloudflare/workers-types": "^4.20221111.1",
     "coffee-loader": "^0.9.0",
     "coffeescript": "^2.5.1",
-    "webpack": "^4.44.2",
+    "webpack": "^5.75.0",
     "webpack-cli": "^3.3.12",
     "wrangler": "^2.4.4"
   },
