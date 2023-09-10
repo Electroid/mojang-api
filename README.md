@@ -39,6 +39,9 @@ Username or UUID -> Everything<br>
   },
   "legacy": <true|null>,
   "demo": <true|null>,
+  "profile_actions": [
+    <zero or more of "FORCED_NAME_CHANGE" or "USING_BANNED_SKIN">
+  ],
   "created_at": <date|null>
 }
 ```
@@ -77,6 +80,9 @@ UUID -> Profile + Textures<br>
       "name": "textures",
       "value": <base64> // Then decode the base64 string and make http requests to fetch the textures...
     }
+  ],
+  "profile_actions": [
+    <zero or more of "FORCED_NAME_CHANGE" or "USING_BANNED_SKIN">
   ]
 }
 ```
