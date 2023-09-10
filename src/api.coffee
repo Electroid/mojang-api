@@ -65,6 +65,7 @@ export user = (id) ->
       raw: {value: texturesRaw.value, signature: texturesRaw.signature} unless texturesRaw.isEmpty()
     legacy: true if profile.legacy
     demo: true if profile.demo
+    profile_actions: profile.profileActions ? []
     created_at: date
   await USERS.put(id, JSON.stringify(response), {expirationTtl: 3600})
   respond(response, json: true)
