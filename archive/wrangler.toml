@@ -1,0 +1,42 @@
+# Isolated archive worker. Do not bind legacy KV/DO namespaces from mojang_api_v1/v2/v3.
+name = "mojang_archive"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "301982b3799377b8f6c0fbeeed3ee65f"
+workers_dev = true
+
+[observability]
+enabled = true
+
+[vars]
+EGRESS_PROXIES = "https://falling-leaf-8926.fly.dev/?url="
+EGRESS_METHODS = "socket,proxy,fetch"
+FRESH_MS = "300000"
+NEGATIVE_MS = "60000"
+TOKEN_RESERVE = "4"
+
+[[durable_objects.bindings]]
+name = "ARCHIVE_NAMES"
+class_name = "ArchiveName"
+
+[[durable_objects.bindings]]
+name = "ARCHIVE_PROFILES"
+class_name = "ArchiveProfile"
+
+[[durable_objects.bindings]]
+name = "ARCHIVE_EGRESS"
+class_name = "ArchiveEgress"
+
+[[durable_objects.bindings]]
+name = "ARCHIVE_CLIENTS"
+class_name = "ArchiveClient"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ArchiveName", "ArchiveProfile", "ArchiveEgress", "ArchiveClient"]
+
+# New route only. Does not replace api.ashcon.app/mojang/v1* or /v2*.
+[[routes]]
+pattern = "api.ashcon.app/mojang/v4*"
+zone_name = "ashcon.app"
