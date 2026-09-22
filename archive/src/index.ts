@@ -185,7 +185,7 @@ export default {
           () => env.ARCHIVE_EGRESS.get(env.ARCHIVE_EGRESS.idFromName("gate")).fetch("https://gate/stats").then((r) => r.json()),
           { error: "gate unavailable" },
         );
-        return json({ ok: true, worker: "mojang_archive", isolated: true, gate: stats });
+        return json({ ok: true, worker: "mojang-archive", isolated: true, gate: stats });
       }
       if (version === "v4" && method === "debug" && p[3] === "egress") {
         return json(await experimentAll(env));

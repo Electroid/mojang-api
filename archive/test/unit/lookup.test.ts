@@ -33,7 +33,7 @@ describe("lookup via simulated Mojang", () => {
     const body = await jsonOf(res);
     expect(body.ok).toBe(true);
     expect(body.isolated).toBe(true);
-    expect(body.worker).toBe("mojang_archive");
+    expect(body.worker).toBe("mojang-archive");
   });
 
   it("serves cached Notch without extra Mojang name lookups", async () => {

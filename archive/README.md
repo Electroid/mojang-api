@@ -1,4 +1,4 @@
-# mojang_archive
+# mojang-archive
 
 Isolated Cloudflare Worker. **Does not use** `mojang_api_v1` / `v2` / `v3` KV or Durable Objects.
 

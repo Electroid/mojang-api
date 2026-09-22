@@ -1,5 +1,5 @@
 # Isolated archive worker. Do not bind legacy KV/DO namespaces from mojang_api_v1/v2/v3.
-name = "mojang_archive"
+name = "mojang-archive"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
 compatibility_flags = ["nodejs_compat"]
