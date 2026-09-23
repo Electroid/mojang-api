@@ -1,0 +1,25 @@
+{
+  "name": "mojang-archive",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Isolated Mojang profile archive worker. Does not share KV/DO with mojang_api_v1/v2/v3.",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "types": "wrangler types",
+    "test": "vitest run --project unit",
+    "test:unit": "vitest run --project unit",
+    "test:e2e": "vitest run --project e2e",
+    "test:all": "vitest run"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.2.3",
+    "@cloudflare/workers-types": "4.20250917.0",
+    "@msw/cloudflare": "^0.0.1",
+    "msw": "^2.14.1",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.136.0"
+  }
+}
