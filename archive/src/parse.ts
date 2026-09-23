@@ -6,11 +6,12 @@
  *   991e1e9  passthrough non-200 (never invent 404 from 5xx/429)  issues #28 #35 #40 #54
  *   9c905fa  miss is 204 OR 404
  */
-import type { Classify, NameState, SessionProfile } from "./types";
-import { looksLikeHtml, tryJson, asRecord, asString, asBool } from "./safe";
+import type { Classify, NameState, ProfileFold, SessionProfile, TexturePayload } from "./types";
+import { looksLikeHtml, tryJson, asRecord, asString, asBool, asArray } from "./safe";
 import { asUuid } from "./ids";
-import { meta, bodyInit, type StoredHttp } from "./raw";
+import { kindOf, meta, bodyInit, type StoredHttp } from "./raw";
 import { parseLimitHeaders, type LimitHeaders } from "./limit";
+import { httpsRewrite } from "./skins";
 
 export const PARSER = "v1";
 
@@ -135,6 +136,90 @@ export function limitOf(res: Response): LimitHeaders {
   return parseLimitHeaders(res.headers, Number(meta(res, "at")) || Date.now());
 }
 
+export function decodeTextures(profile: SessionProfile | null): {
+  textures: NonNullable<TexturePayload["textures"]>;
+  decoded: Record<string, unknown> | null;
+  raw?: { value: string; signature?: string };
+  slim: boolean;
+} {
+  try {
+    const props = asArray(profile?.properties);
+    const prop = props.find((p) => asString(asRecord(p)?.name) === "textures");
+    const rec = asRecord(prop);
+    const value = asString(rec?.value);
+    if (!value) return { textures: {}, decoded: null, slim: false };
+    const decoded = asRecord(tryJson(atobSafe(value)));
+    const parsed = decoded as TexturePayload | null;
+    const textures = (parsed?.textures || {}) as NonNullable<TexturePayload["textures"]>;
+    const slim = asString(asRecord(asRecord(textures.SKIN)?.metadata)?.model) === "slim";
+    const signature = asString(rec?.signature) || undefined;
+    return { textures, decoded, raw: { value, signature }, slim };
+  } catch {
+    return { textures: {}, decoded: null, slim: false };
+  }
+}
+
+function atobSafe(value: string): string {
+  try {
+    return atob(value);
+  } catch {
+    return "";
+  }
+}
+
+export function textureUrls(profile: SessionProfile | null): { skin?: string; cape?: string } {
+  const { textures } = decodeTextures(profile);
+  const skin = asString(asRecord(textures.SKIN)?.url) || undefined;
+  const cape = asString(asRecord(textures.CAPE)?.url) || undefined;
+  return { skin, cape };
+}
+
+export function sameTextureUrl(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  return httpsRewrite(a) === httpsRewrite(b);
+}
+
+export function decodedTexturesResponse(profile: SessionProfile, at: number, uuid: string): Response | null {
+  const { decoded, raw } = decodeTextures(profile);
+  if (!decoded || !raw?.value) return null;
+  return stampDecode(
+    new Response(JSON.stringify(decoded), { status: 200, headers: { "content-type": "application/json" } }),
+    at,
+    uuid,
+  );
+}
+
+function stampDecode(res: Response, at: number, uuid: string): Response {
+  const headers = new Headers(res.headers);
+  headers.set("x-archive-kind", "decode");
+  headers.set("x-archive-via", "decode");
+  headers.set("x-archive-at", String(at));
+  headers.set("x-archive-url", `x-archive://decode/textures/${uuid}`);
+  return new Response(res.body, { status: res.status, headers });
+}
+
+function latestTextureB64(rows: StoredHttp[], url: string | undefined): string | null {
+  if (!url) return null;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i];
+    if (kindOf(row) !== "texture") continue;
+    if (row.response.status !== 200 || !row.body) continue;
+    const got = row.url || meta(row.response, "url") || "";
+    if (!sameTextureUrl(got, url)) continue;
+    if (row.response.headers.get("x-archive-body") === "base64") return row.body;
+    try {
+      return btoa(row.body);
+    } catch {
+      return row.body;
+    }
+  }
+  return null;
+}
+
+export function hasTexture(rows: StoredHttp[], url: string | undefined): boolean {
+  return latestTextureB64(rows, url) != null;
+}
+
 /** Replay stored HTTP with the current parser. A parser bump re-reads history as-is. */
 export function foldName(name: string, rows: StoredHttp[]): NameState {
   const state: NameState = {
@@ -149,6 +234,8 @@ export function foldName(name: string, rows: StoredHttp[]): NameState {
     lastRefreshAt: null,
   };
   for (const row of rows) {
+    const kind = kindOf(row);
+    if (kind === "texture" || kind === "decode" || kind === "session") continue;
     const c = classify(row.response, row.body);
     if (!isTerminal(c)) continue;
     state.lastRefreshAt = row.at;
@@ -164,4 +251,72 @@ export function foldName(name: string, rows: StoredHttp[]): NameState {
     }
   }
   return state;
+}
+
+/** Replay a UUID's ledger: session + lookup + decoded textures + skin/cape fetches. */
+export function foldProfile(uuid: string, rows: StoredHttp[]): ProfileFold {
+  const out: ProfileFold = {
+    username: null,
+    profile: null,
+    skinB64: null,
+    capeB64: null,
+    history: [],
+    firstSeenAt: rows[0]?.at ?? null,
+    firstAliveAt: null,
+    firstMissingAt: null,
+    lastAliveAt: null,
+    lastMissingAt: null,
+    lastRefreshAt: null,
+    lastStatus: null,
+    classified: null,
+  };
+  let decoded: Record<string, unknown> | null = null;
+  for (const row of rows) {
+    const kind = kindOf(row);
+    if (kind === "texture") continue;
+    if (kind === "decode") {
+      const rec = asRecord(tryJson(row.body));
+      if (rec && row.response.status === 200) decoded = rec;
+      continue;
+    }
+    const c = classify(row.response, row.body);
+    if (!isTerminal(c)) continue;
+    out.lastRefreshAt = row.at;
+    out.lastStatus = row.response.status;
+    out.classified = c;
+    if (c === "ok") {
+      if (!out.firstAliveAt) out.firstAliveAt = row.at;
+      out.lastAliveAt = row.at;
+      if (kind === "session") {
+        const sess = session(row.response, row.body);
+        if (sess) {
+          out.profile = sess;
+          const username = asString(sess.name);
+          if (username) {
+            out.username = username;
+            const last = out.history[out.history.length - 1];
+            if (!last || last.username !== username) {
+              out.history.push({ username, changedAt: last ? row.at : null });
+            }
+          }
+        }
+      } else {
+        const id = identity(row.response, row.body);
+        if (id && !out.username) out.username = id.name;
+      }
+    } else if (c === "missing") {
+      if (!out.firstMissingAt) out.firstMissingAt = row.at;
+      out.lastMissingAt = row.at;
+    }
+  }
+  const urls = out.profile
+    ? textureUrls(out.profile)
+    : {
+        skin: asString(asRecord(asRecord(decoded?.textures)?.SKIN)?.url) || undefined,
+        cape: asString(asRecord(asRecord(decoded?.textures)?.CAPE)?.url) || undefined,
+      };
+  out.skinB64 = latestTextureB64(rows, urls.skin);
+  out.capeB64 = latestTextureB64(rows, urls.cape);
+  if (out.profile && !out.username) out.username = asString(out.profile.name);
+  return out;
 }

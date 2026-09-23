@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
 import { runInDurableObject } from "cloudflare:test";
 import { freshLimit, observe, parseLimitHeaders, take } from "../../src/limit";
-import { classify, foldName, identity } from "../../src/parse";
-import { dump, freeze, stored, thaw } from "../../src/raw";
+import { classify, foldName, foldProfile, identity } from "../../src/parse";
+import { dump, freeze, stamp, stored, thaw } from "../../src/raw";
 import { planHops, runHops, type Attempt } from "../../src/fetch-client";
 import { ArchiveTcp } from "../../src/tcp";
 
@@ -84,6 +84,59 @@ describe("parse layer vs stored Response", () => {
     expect(thawed.headers.get("x-minecraft-rate-limit-result")).toBe("UNDER_LIMIT");
     expect(classify(thawed, frozen.body)).toBe("missing");
     expect(dump({ ...row, response: thawed }).headers["x-archive-url"]).toContain("lookup/name/nope");
+  });
+
+  it("freezes PNG bodies as base64 and thaws the same bytes", async () => {
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const res = stamp(new Response(png, { status: 200, headers: { "content-type": "image/png" } }), {
+      kind: "texture",
+      url: "http://textures.minecraft.net/texture/abc",
+      at: 3,
+    });
+    const frozen = await freeze(res);
+    expect(frozen.headers.toLowerCase()).toContain("x-archive-body: base64");
+    const thawed = thaw(frozen.status, frozen.headers, frozen.body);
+    expect(thawed.headers.get("x-archive-kind")).toBe("texture");
+    expect([...new Uint8Array(await thawed.arrayBuffer())]).toEqual([...png]);
+  });
+
+  it("folds session, decoded textures, and skin/cape fetches into one profile", () => {
+    const textures = {
+      timestamp: 1,
+      profileId: "069a79f444e94726a5befca90e38aaf5",
+      profileName: "Notch",
+      textures: { SKIN: { url: "http://textures.minecraft.net/texture/skin1" } },
+    };
+    const sessionBody = JSON.stringify({
+      id: "069a79f444e94726a5befca90e38aaf5",
+      name: "Notch",
+      properties: [{ name: "textures", value: btoa(JSON.stringify(textures)) }],
+    });
+    const rows = [
+      stored(200, sessionBody, {
+        at: 10,
+        url: "https://sessionserver.mojang.com/session/minecraft/profile/069a79f444e94726a5befca90e38aaf5?unsigned=false",
+        kind: "session",
+        headers: { "content-type": "application/json" },
+      }),
+      stored(200, JSON.stringify(textures), {
+        at: 11,
+        url: "x-archive://decode/textures/069a79f444e94726a5befca90e38aaf5",
+        kind: "decode",
+        headers: { "content-type": "application/json" },
+      }),
+      stored(200, "iVBORw0KGgo=", {
+        at: 12,
+        url: "https://textures.minecraft.net/texture/skin1",
+        kind: "texture",
+        headers: { "content-type": "image/png", "x-archive-body": "base64" },
+      }),
+    ];
+    const folded = foldProfile("069a79f444e94726a5befca90e38aaf5", rows);
+    expect(folded.username).toBe("Notch");
+    expect(folded.profile?.name).toBe("Notch");
+    expect(folded.skinB64).toBe("iVBORw0KGgo=");
+    expect(folded.history[0].username).toBe("Notch");
   });
 });
 

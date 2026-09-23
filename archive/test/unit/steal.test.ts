@@ -10,20 +10,16 @@ import { ArchiveEgress } from "../../src/gate";
 async function ageNotch(): Promise<void> {
   const name = env.ARCHIVE_NAMES.get(env.ARCHIVE_NAMES.idFromName("notch"));
   await runInDurableObject(name, async (_inst: ArchiveName, state) => {
-    const rows = [...state.storage.sql.exec(`SELECT v FROM kv WHERE k = 'state'`)];
-    const row = rows[0] as { v: string } | undefined;
-    if (!row) return;
-    const s = JSON.parse(row.v);
-    s.lastRefreshAt = 1;
-    state.storage.sql.exec(
-      `INSERT INTO kv (k,v) VALUES ('state', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v`,
-      JSON.stringify(s),
-    );
+    try {
+      state.storage.sql.exec(`UPDATE http SET at = 1`);
+    } catch {
+      /* ignore */
+    }
   });
   const profile = env.ARCHIVE_PROFILES.get(env.ARCHIVE_PROFILES.idFromName("069a79f444e94726a5befca90e38aaf5"));
   await runInDurableObject(profile, async (_inst: ArchiveProfile, state) => {
     try {
-      state.storage.sql.exec(`UPDATE snapshots SET at = 1`);
+      state.storage.sql.exec(`UPDATE http SET at = 1`);
     } catch {
       /* ignore */
     }

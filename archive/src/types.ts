@@ -100,3 +100,19 @@ export interface Permit {
   tokens: number;
   reason: string;
 }
+
+export interface ProfileFold {
+  username: string | null;
+  profile: SessionProfile | null;
+  skinB64: string | null;
+  capeB64: string | null;
+  history: Array<{ username: string; changedAt: number | null }>;
+  firstSeenAt: number | null;
+  firstAliveAt: number | null;
+  firstMissingAt: number | null;
+  lastAliveAt: number | null;
+  lastMissingAt: number | null;
+  lastRefreshAt: number | null;
+  lastStatus: number | null;
+  classified: Classify | null;
+}

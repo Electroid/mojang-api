@@ -1,7 +1,10 @@
-import type { SessionProfile, TexturePayload } from "./types";
+import type { SessionProfile } from "./types";
 import { asUuid, dayString } from "./ids";
-import { asArray, asBool, asRecord, asString, tryJson } from "./safe";
+import { asArray, asBool, asRecord, asString } from "./safe";
 import { PIXEL_PNG_B64, defaultSkin } from "./skins";
+import { decodeTextures } from "./parse";
+
+export { decodeTextures };
 
 export interface CompatInput {
   uuid: string;
@@ -14,36 +17,6 @@ export interface CompatInput {
   firstMissingAt: number | null;
   firstSeenAt: number | null;
   createdAt: number | null;
-}
-
-export function decodeTextures(profile: SessionProfile | null): {
-  textures: NonNullable<TexturePayload["textures"]>;
-  raw?: { value: string; signature?: string };
-  slim: boolean;
-} {
-  try {
-    const props = asArray(profile?.properties);
-    const prop = props.find((p) => asString(asRecord(p)?.name) === "textures");
-    const rec = asRecord(prop);
-    const value = asString(rec?.value);
-    if (!value) return { textures: {}, slim: false };
-    const decoded = tryJson(atobSafe(value));
-    const parsed = asRecord(decoded) as TexturePayload | null;
-    const textures = (parsed?.textures || {}) as NonNullable<TexturePayload["textures"]>;
-    const slim = asString(asRecord(asRecord(textures.SKIN)?.metadata)?.model) === "slim";
-    const signature = asString(rec?.signature) || undefined;
-    return { textures, raw: { value, signature }, slim };
-  } catch {
-    return { textures: {}, slim: false };
-  }
-}
-
-function atobSafe(value: string): string {
-  try {
-    return atob(value);
-  } catch {
-    return "";
-  }
 }
 
 /** Only when this archive saw a 404 (or 204) and later a 200 for that identity. */

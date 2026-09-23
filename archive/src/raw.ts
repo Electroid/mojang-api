@@ -6,10 +6,11 @@
 export const X = "x-archive-";
 
 export function originRequest(url: string, from?: Request): Request {
+  const texture = kindFromUrl(url) === "texture";
   return new Request(url, {
     method: "GET",
     headers: {
-      Accept: from?.headers.get("accept") || "application/json",
+      Accept: from?.headers.get("accept") || (texture ? "*/*" : "application/json"),
       "User-Agent": from?.headers.get("user-agent") || "Java/17.0.12",
     },
   });
@@ -99,10 +100,57 @@ export function bodyInit(status: number, body: string | null | undefined): BodyI
   return body ?? "";
 }
 
-/** Persist a Response as HTTP status + header block + body. */
+export function bytesToB64(buf: Uint8Array): string {
+  let bin = "";
+  const n = 0x8000;
+  for (let i = 0; i < buf.length; i += n) {
+    bin += String.fromCharCode(...buf.subarray(i, i + n));
+  }
+  return btoa(bin);
+}
+
+export function b64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function isBinary(bytes: Uint8Array, contentType: string): boolean {
+  if (/image|octet-stream|png|jpeg|webp|avif/i.test(contentType)) return true;
+  if (/json|text|xml|javascript|urlencoded/i.test(contentType)) return false;
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return true;
+  return bytes.includes(0);
+}
+
+export function kindFromUrl(url: string): string {
+  const u = (url || "").toLowerCase();
+  if (u.startsWith("x-archive://decode")) return "decode";
+  if (/sessionserver\.mojang\.com|\/session\/minecraft\/profile/.test(u)) return "session";
+  if (/textures\.minecraft\.net|assets\.mojang\.com/.test(u)) return "texture";
+  if (/\/lookup\/name|\/users\/profiles\/minecraft\//.test(u)) return "lookup";
+  if (/\/minecraft\/profile\/lookup\//.test(u)) return "uuid";
+  return "http";
+}
+
+export function kindOf(row: { response: Response; url: string }): string {
+  return meta(row.response, "kind") || kindFromUrl(row.url || meta(row.response, "url") || "");
+}
+
+/** Persist a Response as HTTP status + header block + body. Binary bodies are base64 + x-archive-body. */
 export async function freeze(res: Response): Promise<{ status: number; headers: string; body: string }> {
-  const body = await res.clone().text();
-  return { status: res.status, headers: encodeHeaders(res.headers), body };
+  const bytes = new Uint8Array(await res.clone().arrayBuffer());
+  const headers = new Headers(res.headers);
+  const binary = isBinary(bytes, headers.get("content-type") || "");
+  if (binary) {
+    headers.set(X + "body", "base64");
+    return { status: res.status, headers: encodeHeaders(headers), body: bytesToB64(bytes) };
+  }
+  return {
+    status: res.status,
+    headers: encodeHeaders(headers),
+    body: new TextDecoder("utf-8", { fatal: false }).decode(bytes),
+  };
 }
 
 /** Rehydrate a stored HTTP message. Invalid statuses become 502 with x-archive-error. */
@@ -110,6 +158,9 @@ export function thaw(status: number, headers: string, body: string): Response {
   const h = decodeHeaders(headers);
   const code = status >= 200 && status <= 599 ? status : 502;
   if (status < 200 || status > 599) h.set(X + "error", h.get(X + "error") || "bad-status");
+  if (h.get(X + "body") === "base64") {
+    return new Response(b64ToBytes(body), { status: code, headers: h });
+  }
   return new Response(bodyInit(code, body), { status: code, headers: h });
 }
 
@@ -118,7 +169,7 @@ export type StoredHttp = { response: Response; body: string; url: string; at: nu
 export function stored(
   status: number,
   body: string,
-  opts: { url?: string; at?: number; headers?: HeadersInit; via?: string } = {},
+  opts: { url?: string; at?: number; headers?: HeadersInit; via?: string; kind?: string } = {},
 ): StoredHttp {
   const url = opts.url || "";
   const at = opts.at ?? 0;
@@ -126,6 +177,7 @@ export function stored(
     url,
     at,
     via: opts.via,
+    kind: opts.kind,
   });
   return { response, body, url, at };
 }

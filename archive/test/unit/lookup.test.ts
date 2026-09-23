@@ -44,13 +44,33 @@ describe("lookup via simulated Mojang", () => {
     expect(sim.apiCalls().length).toBe(before);
   });
 
-  it("history endpoint records observations", async () => {
+  it("history endpoint records a ledger of exact lookup Responses", async () => {
     await api("/mojang/v4/user/Notch");
     const res = await api("/mojang/v4/history/Notch");
     expect(res.status).toBe(200);
     const body = await jsonOf(res);
     expect(body.state.uuid).toBe("069a79f444e94726a5befca90e38aaf5");
     expect(body.observations.length).toBeGreaterThan(0);
+    expect(body.ledger.length).toBeGreaterThan(0);
+    expect(body.ledger[0].headers).toBeTruthy();
+    expect(typeof body.ledger[0].body).toBe("string");
+    expect(body.ledger[0].status).toBe(200);
+  });
+
+  it("uuid ledger stores session, decoded textures, and skin HTTP", async () => {
+    await api("/mojang/v4/user/jeb_");
+    const res = await api("/mojang/v4/history/853c80ef3c3749fdaa49938b674adae6");
+    expect(res.status).toBe(200);
+    const body = await jsonOf(res);
+    const kinds = (body.kinds as Array<{ kind: string }>).map((k) => k.kind);
+    expect(kinds).toContain("session");
+    expect(kinds).toContain("decode");
+    expect(kinds).toContain("texture");
+    const session = (body.ledger as Array<{ kind?: string; headers: Record<string, string>; body: string }>).find(
+      (r) => r.headers["x-archive-kind"] === "session" || /sessionserver/.test(r.headers["x-archive-url"] || ""),
+    );
+    expect(session?.body).toMatch(/jeb_/i);
+    expect(session?.headers["content-type"]).toMatch(/json/);
   });
 
   it("v4 hyphen username is forwarded to Mojang (issue #27)", async () => {

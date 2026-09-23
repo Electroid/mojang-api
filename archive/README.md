@@ -10,13 +10,13 @@ A fault-tolerant Mojang profile archive that spends scarce Mojang rate-limit bud
 
 ## Layers
 
-If Mojang breaks the JSON again, ship a new **parser**. Proxy/cache/SQLite keep the `Request`/`Response` they already stored. Extra metadata is only `x-archive-*` headers (`via`, `colo`, `ms`, `error`, `url`, `at`, addresses). Parsers ignore them.
+If Mojang breaks the JSON again, ship a new **parser**. Every name DO and UUID DO keeps an append-only **ledger** of the exact `Response` at that timestamp (status, headers, body). Public JSON is always folded from that ledger — never from a derived snapshot. Skin/cape CDN fetches and decoded texture payloads are the same kind of row (`x-archive-kind`: `lookup` | `session` | `uuid` | `decode` | `texture`).
 
 | Layer | Module | Job |
 | --- | --- | --- |
 | Transport | `transport.ts`, `tcp.ts` | Dumb GET (fetch or raw TCP). `Request` in, origin `Response` out. |
-| Store | `raw.ts`, `store.ts`, Cache API | Freeze/thaw that `Response` verbatim. L1 is per-colo `caches.default`. |
-| Parse | `parse.ts` (`PARSER=v1`) | 204\|\|404 miss, identity, session, rate-limit headers. `foldName` replays history. |
+| Store | `raw.ts`, `store.ts`, Cache API | Freeze/thaw that `Response` verbatim (binary as base64). L1 is per-colo `caches.default`. |
+| Parse | `parse.ts` (`PARSER=v1`) | 204\|\|404 miss, identity, session, textures. `foldName` / `foldProfile` replay the ledger. |
 | Policy | `fetch-client.ts`, `limit.ts`, `gate.ts` | Rotate colos on 429/403; AIMD from headers or implied req/s; work-stealing. |
 | API | `compat.ts`, `index.ts` | Grandfathered v1/v2/v4 JSON. |
 
