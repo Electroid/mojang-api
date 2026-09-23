@@ -103,6 +103,13 @@ export function parseLimitHeaders(input: Headers | Record<string, string | undef
 }
 
 function refill(state: LimitState, now: number): LimitState {
+  if (state.coolUntil && now < state.coolUntil) {
+    return state;
+  }
+  if (state.coolUntil && state.tokens < 1) {
+    const cap = Math.max(2, state.cap);
+    return { ...state, tokens: cap, cap, updated: now, coolUntil: 0 };
+  }
   const elapsed = Math.max(0, (now - state.updated) / 1000);
   const tokens = Math.min(state.cap, state.tokens + elapsed * state.rate);
   return { ...state, tokens, updated: now };

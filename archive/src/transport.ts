@@ -1,5 +1,5 @@
 import { connect } from "cloudflare:sockets";
-import { headersFromHttpHead, originRequest, stamp } from "./raw";
+import { bodyInit, headersFromHttpHead, originRequest, stamp } from "./raw";
 import { sleep } from "./safe";
 
 try {
@@ -143,7 +143,7 @@ export async function proxySocket(request: Request, via = "socket"): Promise<Res
     if (Number.isFinite(cl) && cl >= 0 && cl <= payload.byteLength) payload = payload.slice(0, cl);
     const body = new TextDecoder("utf-8", { fatal: false }).decode(payload);
     const code = status >= 200 && status <= 599 ? status : 502;
-    return stamp(new Response(body, { status: code, headers }), {
+    return stamp(new Response(bodyInit(code, body), { status: code, headers }), {
       via,
       ms: Date.now() - t0,
       at: Date.now(),

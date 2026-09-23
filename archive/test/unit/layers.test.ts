@@ -34,6 +34,16 @@ describe("limit discovery", () => {
     expect(s.coolUntil).toBeGreaterThan(2200);
     expect(take(s, 2200, "refresh").ok).toBe(false);
   });
+
+  it("grants a probe token after cooldown so new lookups are not stuck", () => {
+    let s = freshLimit(1000);
+    s = observe(s, { at: 1000, classified: "ratelimit", headers: { "retry-after": "1" } });
+    expect(take(s, 1000, "new").ok).toBe(false);
+    const after = take(s, 2100, "new");
+    expect(after.ok).toBe(true);
+    expect(after.state.tokens).toBeGreaterThanOrEqual(1);
+    expect(take(after.state, 2100, "new").ok).toBe(true);
+  });
 });
 
 describe("parse layer vs stored Response", () => {

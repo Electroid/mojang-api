@@ -9,7 +9,7 @@
 import type { Classify, NameState, SessionProfile } from "./types";
 import { looksLikeHtml, tryJson, asRecord, asString, asBool } from "./safe";
 import { asUuid } from "./ids";
-import { meta, type StoredHttp } from "./raw";
+import { meta, bodyInit, type StoredHttp } from "./raw";
 import { parseLimitHeaders, type LimitHeaders } from "./limit";
 
 export const PARSER = "v1";
@@ -99,7 +99,7 @@ export function classifyArgs(status: number | null, body: string | null, content
   if (contentType) headers.set("content-type", contentType);
   if (url) headers.set("x-archive-url", url);
   if (status == null) headers.set("x-archive-error", "network");
-  const res = new Response(body ?? "", { status: status == null ? 502 : status, headers });
+  const res = new Response(bodyInit(status == null ? 502 : status, body), { status: status == null ? 502 : status, headers });
   return classify(res, body);
 }
 

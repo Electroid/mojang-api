@@ -92,6 +92,13 @@ export function decodeHeaders(text: string): Headers {
   return headers;
 }
 
+const NULL_BODY = new Set([204, 205, 304]);
+
+export function bodyInit(status: number, body: string | null | undefined): BodyInit | null {
+  if (NULL_BODY.has(status)) return null;
+  return body ?? "";
+}
+
 /** Persist a Response as HTTP status + header block + body. */
 export async function freeze(res: Response): Promise<{ status: number; headers: string; body: string }> {
   const body = await res.clone().text();
@@ -103,7 +110,7 @@ export function thaw(status: number, headers: string, body: string): Response {
   const h = decodeHeaders(headers);
   const code = status >= 200 && status <= 599 ? status : 502;
   if (status < 200 || status > 599) h.set(X + "error", h.get(X + "error") || "bad-status");
-  return new Response(body, { status: code, headers: h });
+  return new Response(bodyInit(code, body), { status: code, headers: h });
 }
 
 export type StoredHttp = { response: Response; body: string; url: string; at: number };
@@ -115,7 +122,7 @@ export function stored(
 ): StoredHttp {
   const url = opts.url || "";
   const at = opts.at ?? 0;
-  const response = stamp(new Response(body, { status, headers: new Headers(opts.headers) }), {
+  const response = stamp(new Response(bodyInit(status, body), { status, headers: new Headers(opts.headers) }), {
     url,
     at,
     via: opts.via,
